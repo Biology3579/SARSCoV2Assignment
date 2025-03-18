@@ -182,24 +182,246 @@ Analysis: compare the two trajectories. Is there a difference in the timing of B
 ## **Question 3: Variant Fixation Analysis**
 Question 3
 Using the Sanger dataset, determine which variant—B.1.617.2, BA.1, or BA.2—reached
-fixation the fastest and exhibited the highest selective advantage under a logistic growth
-model. Use weekly counts to measure the selective advantage (𝑠).
+fixation the fastest and exhibited the highest selective advantage under a logistic growth model. 
+Use weekly counts to measure the selective advantage (𝑠).
+
+Discussion...
+
+```{r estimate-delta-growth-part1, echo=TRUE, message=FALSE, warning=FALSE}
+# Filter the Sanger dataset for the three variants
+sanger_selected_variants <- sanger_major_lineage_trends %>%
+  filter(major_lineage %in% c("B.1.617.2", "BA.1", "BA.2"))
+
+# Plot frequency trajectories for the selected variants
+ggplot(sanger_selected_variants, aes(x = collection_date, y = lineage_frequency, color = major_lineage)) +
+  geom_line(linewidth = 1.2) +  # Line for trends
+  geom_point(size = 2, alpha = 0.7) +  # Points for visibility
+  scale_color_manual(values = c("B.1.617.2" = "#E69F00",   # Orange
+                                "BA.1" = "#009E73",        # Green
+                                "BA.2" = "#D55E00")) +     # Red
+  labs(
+    title = "Frequency Trajectories of B.1.617.2, BA.1, and BA.2",
+    x = "Collection Date",
+    y = "Frequency",
+    color = "Variant"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Extract growth phase dates for each variant
+growth_phases <- bind_rows(
+  extract_growth_phase_dates(sanger_major_lineage_trends, "B.1.617.2"),
+  extract_growth_phase_dates(sanger_major_lineage_trends, "BA.1"),
+  extract_growth_phase_dates(sanger_major_lineage_trends, "BA.2")
+)
+
+print(growth_phases)
+
+```
+
+
+```{r, warning=FALSE}
+B16172_growth_phase <- sanger_major_lineage_trends %>%
+  filter(
+    major_lineage == "B.1.617.2",  # Select Delta variant
+    collection_date >= as.Date("2021-03-27") & collection_date <= as.Date("2021-06-19")  # Growth phase interval
+  )
+# Define Logistic Growth Function (Ensure this is run first)
+logistic_growth <- function(t, s, f0) {
+  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
+}
+
+
+# Fit the logistic model using nls
+nls_fit <- nls( # this is ...
+  lineage_frequency ~ logistic_growth(as.numeric(collection_date - min(collection_date)), s, f0),
+  data = B16172_growth_phase,
+  start = list(s = 0.1, f0 = min(B16172_growth_phase$lineage_frequency))  # Initial guesses to make it easier for r to find
+  #value = first non-zero value of strain
+)
+
+# Extract fitted growth rate
+growth_rate <- coef(nls_fit)["s"]
+
+# Generate a smooth sequence of dates for plotting the logistic curve
+smooth_dates <- seq(min(B16172_growth_phase$collection_date),
+                    max(B16172_growth_phase$collection_date), by = "1 day")
+
+# Calculate predicted frequencies for smooth (continuous) dates 
+smooth_predictions <- data.frame(
+  collection_date = smooth_dates,
+  predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(B16172_growth_phase$collection_date)),
+                                         coef(nls_fit)["s"], coef(nls_fit)["f0"])
+)
+
+# Visualise the actual data points and the smooth logistic fit
+ggplot(B16172_growth_phase, aes(x = collection_date)) +
+  geom_point(aes(y = lineage_frequency), color = "black", size = 2, alpha = 0.7) +
+  geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), color = "orange", size = 1) +
+  annotate(
+    "text", 
+    x = as.Date("2021-05-15"), 
+    y = 0.8, 
+    label = paste0("s= ", round(growth_rate, 4)), 
+    color = "orange", 
+    size = 5
+  ) +
+  labs(
+    title = "Logistic growth fit for Delta variant frequency",
+    x = "Collection date",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+```
+```{r, warning=FALSE}
+# Subset data to only include the increasing trajectory for BA.1
+BA1_growth_phase <- sanger_major_lineage_trends %>%
+  filter(major_lineage == "BA.1", 
+         collection_date >= as.Date("2021-10-30") & collection_date <= as.Date("2022-01-08"))
+
+# Define Logistic Growth Function (Ensure this is run first)
+logistic_growth <- function(t, s, f0) {
+  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
+}
+
+# Fit the logistic model using nls
+nls_fit <- nls( 
+  lineage_frequency ~ logistic_growth(as.numeric(collection_date - min(collection_date)), s, f0),
+  data = BA1_growth_phase,
+  start = list(s = 0.1, f0 = min(BA1_growth_phase$lineage_frequency[BA1_growth_phase$lineage_frequency > 0])) # Avoid zero for f0
+)
+
+# Extract fitted growth rate
+growth_rate <- coef(nls_fit)["s"]
+
+# Generate a smooth sequence of dates for plotting the logistic curve
+smooth_dates <- seq(min(BA1_growth_phase$collection_date),
+                    max(BA1_growth_phase$collection_date), by = "1 day")
+
+# Calculate predicted frequencies for smooth (continuous) dates 
+smooth_predictions <- data.frame(
+  collection_date = smooth_dates,
+  predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(BA1_growth_phase$collection_date)),
+                                         coef(nls_fit)["s"], coef(nls_fit)["f0"])
+)
+
+# Visualise the actual data points and the smooth logistic fit
+ggplot(BA1_growth_phase, aes(x = collection_date)) +
+  geom_point(aes(y = lineage_frequency), color = "black", size = 2, alpha = 0.7) +
+  geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), color = "red", size = 1) +
+  annotate(
+    "text", 
+    x = as.Date("2021-12-15"), 
+    y = 0.8, 
+    label = paste0("s= ", round(growth_rate, 4)), 
+    color = "red", 
+    size = 5
+  ) +
+  labs(
+    title = "Logistic growth fit for BA.1 variant frequency",
+    x = "Collection date",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+```
+
+	
+```{r, warning=FALSE}
+# Subset data to only include the increasing trajectory for BA.1
+BA2_growth_phase <- sanger_major_lineage_trends %>%
+  filter(major_lineage == "BA.2", 
+         collection_date >= as.Date("2021-01-01") & collection_date <= as.Date("2022-04-16"))
+
+# Define Logistic Growth Function (Ensure this is run first)
+logistic_growth <- function(t, s, f0) {
+  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
+}
+
+# Fit the logistic model using nls
+nls_fit <- nls( 
+  lineage_frequency ~ logistic_growth(as.numeric(collection_date - min(collection_date)), s, f0),
+  data = BA2_growth_phase,
+  start = list(s = 0.1, f0 = min(BA2_growth_phase$lineage_frequency[BA2_growth_phase$lineage_frequency > 0])) # Avoid zero for f0
+)
+
+# Extract fitted growth rate
+growth_rate <- coef(nls_fit)["s"]
+
+# Generate a smooth sequence of dates for plotting the logistic curve
+smooth_dates <- seq(min(BA2_growth_phase$collection_date),
+                    max(BA2_growth_phase$collection_date), by = "1 day")
+
+# Calculate predicted frequencies for smooth (continuous) dates 
+smooth_predictions <- data.frame(
+  collection_date = smooth_dates,
+  predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(BA2_growth_phase$collection_date)),
+                                         coef(nls_fit)["s"], coef(nls_fit)["f0"])
+)
+
+# Visualise the actual data points and the smooth logistic fit
+ggplot(BA2_growth_phase, aes(x = collection_date)) +
+  geom_point(aes(y = lineage_frequency), color = "black", size = 2, alpha = 0.7) +
+  geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), color = "red", size = 1) +
+  annotate(
+    "text", 
+    x = as.Date("2021-01-01"), 
+    y = 0.8, 
+    label = paste0("s= ", round(growth_rate, 4)), 
+    color = "red", 
+    size = 5
+  ) +
+  labs(
+    title = "Logistic growth fit for BA.1 variant frequency",
+    x = "Collection date",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+```
+
+B.1.617.2	2021-04-03	2021-06-19		
+BA.1	2021-10-30	2022-01-08		
+BA.2	2022-01-01	2022-04-16	
+
 
 ```{r logistic-growth}
 # Logistic growth model
-logistic_model <- function(data, lineage) {
-  data <- filter(data, lineage == lineage)
-  glm(formula = cbind(count, total - count) ~ week, data = data, family = binomial)
+logistic_growth <- function(t, s, f0) {
+  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
 }
 
-# Fit models
-variants <- c("B.1.617.2", "BA.1", "BA.2")
-models <- lapply(variants, function(v) logistic_model(genomes, v))
-names(models) <- variants
+# Fit logistic growth model for each variant using inline date definitions
+growth_rates <- bind_rows(
+  fit_variant_growth(sanger_major_lineage_trends, "B.1.617.2", start_date = as.Date("2021-04-03"), end_date = as.Date("2021-06-19")),
+  fit_variant_growth(sanger_major_lineage_trends, "BA.1", start_date = as.Date("2021-10-30"), end_date = as.Date("2022-01-08")),
+  fit_variant_growth(sanger_major_lineage_trends, "BA.2", start_date = as.Date("2022-01-01"), end_date = as.Date("2022-04-16"))
+)
+print(growth_rates)
 
-# Compare selective advantage
-s_values <- sapply(models, function(m) coef(m)[2])
-s_values
+# Define known growth intervals
+growth_intervals <- tibble(
+  variant = c("B.1.617.2", "BA.1", "BA.2"),
+  start_date = as.Date(c("2021-04-23", "2021-11-05", "2022-02-15")),
+  end_date = as.Date(c("2021-07-12", "2022-01-30", "2022-04-25")),
+  color = c("#E69F00", "#009E73", "#D55E00")  # Color for each variant
+)
+
+# Fit logistic models for all variants
+growth_results_list <- growth_intervals %>%
+  rowwise() %>%
+  mutate(growth_results = list(fit_variant_growth(sanger_major_lineage_trends, variant, start_date, end_date)))
+
+# Generate plots
+growth_plots <- pmap(list(
+  growth_results_list$growth_results,
+  growth_intervals$variant,
+  growth_intervals$color
+), plot_logistic_growth_curve)
+
+# Arrange plots side by side
+ggarrange(plotlist = growth_plots, ncol = 3, nrow = 1)
 ```
 
 ---

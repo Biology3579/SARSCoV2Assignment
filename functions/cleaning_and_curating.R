@@ -51,6 +51,7 @@ classify_major_lineages <- function(raw_data, major_lineages) {
 curate_lineage_trend_data <- function(data) {
   data %>%
     group_by(collection_date, major_lineage) %>%  # Aggregate by date and lineage
+      # Grouping ensures that all sequences of the same lineage on a given date are counted together, giving a clearer picture of how the lineage is spreading.
     summarise(
       lineage_count = sum(count, na.rm = TRUE),  # Total count per lineage per day/week
       .groups = "drop"
@@ -79,6 +80,103 @@ bin_lineage_data <- function(data, bin_size = 10) {
     mutate(lineage_frequency = lineage_count / total_count) %>%  # Recalculate frequencies
     ungroup()
 }
+
+
+# Fucntions to ...
+
+extract_growth_phase_dates <- function(data, variant, min_growth_points = 4, fixation_threshold = 0.98) {
+  
+  # Filter data for the specific variant
+  variant_data <- data %>%
+    filter(major_lineage == variant) %>%
+    arrange(collection_date) %>%
+    mutate(
+      is_nonzero = lineage_frequency > 0,  # Create logical column for nonzero frequencies
+      consecutive_nonzero = is_nonzero & lag(is_nonzero, default = FALSE) & lead(is_nonzero, default = FALSE) # Check for consecutive nonzero
+    )
+  
+  # Identify the first date where `min_growth_points` consecutive nonzero values exist
+  start_date <- variant_data %>%
+    filter(consecutive_nonzero) %>%
+    slice_head(n = 1) %>%
+    pull(collection_date)
+  
+  # Identify the first date when frequency reaches the fixation threshold
+  end_date <- variant_data %>%
+    filter(lineage_frequency >= fixation_threshold) %>%
+    arrange(collection_date) %>%
+    slice_head(n = 1) %>%
+    pull(collection_date)
+  
+  # If no fixation found, use the last available date
+  if (length(end_date) == 0) {
+    end_date <- max(variant_data$collection_date, na.rm = TRUE)
+  }
+  
+  # Return a tibble with extracted dates
+  return(tibble(variant = variant, start_date = start_date, end_date = end_date))
+}
+
+
+fit_variant_growth_1 <- function(data, variant, start_date, end_date) {
+  
+  # Filter data for the specific variant
+  variant_data <- data %>%
+    filter(major_lineage == variant)
+  
+  # Subset data to only include the user-defined growth phase
+  growth_phase_data <- variant_data %>%
+    filter(collection_date >= start_date & collection_date <= end_date) %>%
+    mutate(days_since_start = as.numeric(collection_date - start_date))
+  
+  # Fit the logistic growth model using nls()
+  nls_fit <- nls(
+    lineage_frequency ~ logistic_growth(days_since_start, s, f0),
+    data = growth_phase_data,
+    start = list(s = 0.1, f0 = min(growth_phase_data$lineage_frequency, na.rm = TRUE)) # Initial guesses
+  )
+  
+  # Extract the fitted growth rate (s)
+  growth_rate <- coef(nls_fit)["s"]
+  
+  # Return results as a tibble
+  return(list(
+    fitted_model = nls_fit, 
+    growth_data = growth_phase_data, 
+    growth_rate = growth_rate
+  ))
+}
+
+#
+fit_variant_growth <- function(data, variant, start_date, end_date) {
+  
+  # Filter data for the specific variant
+  variant_data <- data %>%
+    filter(major_lineage == variant)
+  
+  # Subset data to only include the user-defined growth phase
+  growth_phase_data <- variant_data %>%
+    filter(collection_date >= start_date & collection_date <= end_date) %>%
+    mutate(days_since_start = as.numeric(collection_date - start_date))
+  
+  # Fit the logistic growth model using nls()
+  nls_fit <- nls(
+    lineage_frequency ~ logistic_growth(days_since_start, s, f0),
+    data = growth_phase_data,
+    start = list(s = 0.1, f0 = min(growth_phase_data$lineage_frequency, na.rm = TRUE)) # Initial guesses
+  )
+  
+  # Extract the fitted growth rate (s)
+  growth_rate <- coef(nls_fit)["s"]
+  
+  # Return results as a tibble
+  return(list(
+    fitted_model = nls_fit, 
+    growth_data = growth_phase_data, 
+    growth_rate = growth_rate
+  ))
+}
+
 
 # Function to drop specific columns based on a provided list of column names
 drop_cols <- function(clean_data, columns_names) {
