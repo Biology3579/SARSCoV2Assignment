@@ -1,0 +1,212 @@
+---
+title: "SARSCoV2Analysis"
+author: "Biology3579"
+date: "2025-03-18"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
+geometry: left=0.5cm, right=1cm, top=1cm, bottom=2cm
+mainfont: Arial
+---
+## R-set-up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,       # Show R code in the document
+  warning = FALSE,   # Suppress warnings
+  message = FALSE    # Suppress messages
+)
+```
+
+```{r renv-restore}
+# Restoring project's environment 
+renv::restore()
+```
+
+```{r packages, warning=FALSE}
+# Source library loading fucntion
+source(here::here("functions", "libraries.R"))
+# Load necessary libraries
+load_libraries()
+```
+## Introduction
+
+Emerging pathogens like SARS-CoV-2 exhibit significant variation in fitness as they evolve, leading to differences in their spread and public health impact. Variants such as Alpha, Delta, and Omicron had differing growth rates and transmissibility, influencing pandemic dynamics. Quantifying these changes helps us understand variant dynamics and prepare for future outbreaks.
+
+This analysis aims to:
+- Understand differences between fitness advantage and reproduction number of variants.
+- Estimate these metrics using genomics data.
+- Reflect on how changes in these metrics influence epidemic control strategies.
+
+---
+
+## **Question 1: SARS-CoV-2 Major Lineages and Trends**
+
+This includes
+weekly counts of virus samples per lineage over time across
+England collected as part of Sanger Institute COG-UK
+
+
+Now, let’s import the Sanger Institute COG-UK
+
+### **1.1 Load and Clean Data**
+
+To simplify the long list of lineage names assigned by the Pango nomenclature, we group them into broader ‘major lineages.’ For this practical, we focus on variants that caused significant waves in the UK since late 2020. These include: Alpha (B.1.1.7), Delta (B.1.617.2), and various Omicron sublineages, including BA.1, BA.2, BA.4, BA.5, and XBB. We put variants from other lineage into the 'Other' category.
+
+```{r load-raw-data}
+# Load ... data
+genomes_raw <- read.csv(here("data", "Genomes_per_week_in_England.csv"))
+head(genomes_raw) #Check ...
+```
+
+
+```{r clean-data}
+#Clean the raw data and save it separately
+source(here("functions", "cleaning_and_curating.R"))
+genomes_clean <- genomes_raw %>%
+  clean_col_names() %>%
+  remove_empty_entries() %>%
+  clean_data_format()  %>%
+  classify_major_lineages(c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB"))
+write_csv(genomes_clean, here("data", "genomes_clean.csv"))
+```
+
+### **1.2 Stacked Area Plots**
+
+In order to ....
+this fucntion does this ...
+```{r}
+source(here("functions", "cleaning_and_curating.R"))
+# Prepare data
+major_lineage_trends <- curate_lineage_trend_data(genomes_clean)
+```
+
+
+weekly...
+
+```{r stacked-area-plots}
+# Generate the stacked area plots
+plot_total_lineage_counts(major_lineage_trends)   # Total counts of each lineage over time
+
+```
+
+```{r}
+plot_lineage_frequencies(major_lineage_trends)  # Proportions of each lineage over time
+
+```
+
+
+```{r}
+# Plot relative frequencies
+genomes_freq <- genomes %>% 
+  group_by(week) %>% 
+  mutate(prop = count / sum(count))
+
+ggplot(genomes_freq, aes(x = week, y = prop, fill = lineage)) + 
+  geom_area(position = "fill") + 
+  labs(title = "SARS-CoV-2 Lineage Proportions Over Time", x = "Week", y = "Proportion", fill = "Lineage") + 
+  theme_minimal()
+```
+
+
+
+
+---
+
+## **Question 2: BA.2 Frequency Trajectory**
+
+```{r ba2-frequency-trajectory}
+# Load ONS-CIS dataset
+ons_cis <- read.csv("data/ONS_CIS_BA2.csv")
+
+# Merge datasets
+ba2_data <- genomes_freq %>% filter(lineage == "BA.2") %>% rename(BA2_Sanger = prop)
+ba2_data <- merge(ba2_data, ons_cis, by = "week", all = TRUE)
+
+# Plot BA.2 frequencies
+ggplot(ba2_data, aes(x = week)) +
+  geom_line(aes(y = BA2_Sanger, color = "Sanger")) +
+  geom_line(aes(y = BA2_ONS, color = "ONS-CIS")) +
+  labs(title = "BA.2 Frequency Trajectory Comparison", x = "Week", y = "Proportion", color = "Dataset") +
+  theme_minimal()
+```
+
+---
+
+## **Question 3: Variant Fixation Analysis**
+
+```{r logistic-growth}
+# Logistic growth model
+logistic_model <- function(data, lineage) {
+  data <- filter(data, lineage == lineage)
+  glm(formula = cbind(count, total - count) ~ week, data = data, family = binomial)
+}
+
+# Fit models
+variants <- c("B.1.617.2", "BA.1", "BA.2")
+models <- lapply(variants, function(v) logistic_model(genomes, v))
+names(models) <- variants
+
+# Compare selective advantage
+s_values <- sapply(models, function(m) coef(m)[2])
+s_values
+```
+
+---
+
+## **Question 4: Regional Analysis of Delta Variant**
+
+```{r delta-region-analysis}
+# Load Delta dataset
+delta_data <- readRDS("data/delta-d2.rds")
+delta_data <- subset(delta_data, phecname != "")
+
+# Delta frequencies by region
+ggplot(delta_data, aes(x = week, y = prop, color = phecname)) +
+  geom_line() +
+  labs(title = "Delta Variant Frequency by Region", x = "Week", y = "Proportion", color = "Region") +
+  theme_minimal()
+```
+
+---
+
+## **Question 5: Delta Incidence and Rt Estimation**
+
+```{r delta-incidence}
+# Load daily cases
+daily_cases <- read.csv("data/daily-new-confirmed-covid-19-cases.csv")
+
+delta_incidence <- genomes_freq %>% 
+  filter(lineage == "B.1.617.2") %>% 
+  mutate(daily_cases = daily_cases$count * prop)
+
+# Plot estimated daily cases
+ggplot(delta_incidence, aes(x = week)) +
+  geom_line(aes(y = daily_cases, color = "Estimated Delta Cases")) +
+  geom_line(aes(y = count, color = "Sequenced Delta Cases")) +
+  labs(title = "Estimated vs. Sequenced Delta Cases", x = "Week", y = "Cases", color = "Dataset") +
+  theme_minimal()
+```
+
+```{r rt-calculation}
+library(EpiEstim)
+
+# Estimate Rt
+rt_estimate <- estimate_R(delta_incidence$daily_cases, method = "parametric_si", config = make_config(mean_si = 4.7, std_si = 2.9))
+
+# Plot Rt
+ggplot(rt_estimate$R, aes(x = t_end, y = `Mean(R)`, ymin = `Quantile.025(R)`, ymax = `Quantile.975(R)`)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.2) +
+  labs(title = "Estimated Rt of Delta Variant", x = "Time", y = "Reproduction Number (Rt)") +
+  theme_minimal()
+```
+
+---
+
+## **Conclusions**
+
+- The dataset provided insights into the dynamics of SARS-CoV-2 variants in England.
+- The BA.2 variant trajectory differed between datasets, likely due to sampling strategies.
+- The Delta variant exhibited regional variation in growth rates.
+- The estimated Rt for Delta confirmed its rapid spread.
