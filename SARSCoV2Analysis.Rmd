@@ -55,85 +55,135 @@ To simplify the long list of lineage names assigned by the Pango nomenclature, w
 
 ```{r load-raw-data}
 # Load ... data
-genomes_raw <- read.csv(here("data", "Genomes_per_week_in_England.csv"))
-head(genomes_raw) #Check ...
+sanger_raw <- read.csv(here("data", "Genomes_per_week_in_England.csv"))
+head(sanger_raw) #Check ...
 ```
 
 
-```{r clean-data}
+```{r clean-sanger-data}
 #Clean the raw data and save it separately
 source(here("functions", "cleaning_and_curating.R"))
-genomes_clean <- genomes_raw %>%
-  clean_col_names() %>%
+sanger_clean <- sanger_raw %>%
+  clean_names() %>%  # Standardize column names to snake_case
+  rename(
+      collection_date = date,  # Rename date for consistency with other data sets
+      major_lineage = lineage) %>% # Rename date for consistency with other data sets 
   remove_empty_entries() %>%
-  clean_data_format()  %>%
+  mutate(
+    collection_date = as.Date(collection_date),  # Ensure date is recognised as date
+    major_lineage = as.character(major_lineage),  # Ensure lineage is character
+    count = as.numeric(count)) %>%  # Ensure count is numeric
   classify_major_lineages(c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB"))
-write_csv(genomes_clean, here("data", "genomes_clean.csv"))
+
+#Save data 
+write_csv(sanger_clean, here("data", "sanger_clean.csv"))
 ```
 
 ### **1.2 Stacked Area Plots**
 
 In order to ....
 this fucntion does this ...
-```{r}
+```{r curate-sanger-data}
 source(here("functions", "cleaning_and_curating.R"))
 # Prepare data
-major_lineage_trends <- curate_lineage_trend_data(genomes_clean)
+sanger_major_lineage_trends <- curate_lineage_trend_data(sanger_clean)
 ```
 
 
 weekly...
 
-```{r stacked-area-plots}
+```{r sanger-total-counts-plot}
+source(here("functions", "plotting.R"))
 # Generate the stacked area plots
-plot_total_lineage_counts(major_lineage_trends)   # Total counts of each lineage over time
+plot_total_lineage_counts(sanger_major_lineage_trends)   # Total counts of each lineage over time
 
 ```
 
-```{r}
-plot_lineage_frequencies(major_lineage_trends)  # Proportions of each lineage over time
+```{r sanger-frequencies-plot}
+source(here("functions", "plotting.R"))
+plot_lineage_frequencies(sanger_major_lineage_trends)  # Proportions of each lineage over time
 
 ```
-
-
-```{r}
-# Plot relative frequencies
-genomes_freq <- genomes %>% 
-  group_by(week) %>% 
-  mutate(prop = count / sum(count))
-
-ggplot(genomes_freq, aes(x = week, y = prop, fill = lineage)) + 
-  geom_area(position = "fill") + 
-  labs(title = "SARS-CoV-2 Lineage Proportions Over Time", x = "Week", y = "Proportion", fill = "Lineage") + 
-  theme_minimal()
-```
-
-
 
 
 ---
 
 ## **Question 2: BA.2 Frequency Trajectory**
 
-```{r ba2-frequency-trajectory}
-# Load ONS-CIS dataset
-ons_cis <- read.csv("data/ONS_CIS_BA2.csv")
+```{r load-raw-data}
+# Import ONS-CIS daily genomic sequence data
+onscis_raw <- read_csv("https://raw.githubusercontent.com/mg878/variant_fitness_practical/main/lineage_data.csv", 
+                       show_col_types = FALSE) #to suppress the read_csv() message
+# Save the dataset
+write_csv(onscis_raw, here("data", "onscis_raw.csv"))
 
-# Merge datasets
-ba2_data <- genomes_freq %>% filter(lineage == "BA.2") %>% rename(BA2_Sanger = prop)
-ba2_data <- merge(ba2_data, ons_cis, by = "week", all = TRUE)
-
-# Plot BA.2 frequencies
-ggplot(ba2_data, aes(x = week)) +
-  geom_line(aes(y = BA2_Sanger, color = "Sanger")) +
-  geom_line(aes(y = BA2_ONS, color = "ONS-CIS")) +
-  labs(title = "BA.2 Frequency Trajectory Comparison", x = "Week", y = "Proportion", color = "Dataset") +
-  theme_minimal()
+# Check the first few rows
+head(onscis_raw)
 ```
+
+```{r clean-onscis-data}
+# Load cleaning functions
+source(here("functions", "cleaning_and_curating.R"))
+
+# Clean the raw data
+onscis_clean <- onscis_raw %>%
+  remove_empty_entries() %>%
+  mutate(
+    collection_date = as.Date(collection_date),  # Ensure collection date is formatted as Date
+    major_lineage = as.character(major_lineage),  # Ensure lineage is character
+    pangolin_call = as.character(pangolin_call)  # Keep pangolin_call as character
+  )
+
+# Save the cleaned data
+write_csv(onscis_clean, here("data", "onscis_clean.csv"))
+
+```
+
+```{r curate-onscis-data}
+source(here("functions", "cleaning_and_curating.R"))
+# Generate count data, compute trends, and bin data (if needed)
+onscis_binned <- onscis_clean %>%
+  group_by(collection_date, major_lineage) %>%
+  summarise(count = n(), .groups = "drop") %>%  # Generate count data
+  curate_lineage_trend_data() %>%               # Compute lineage trends
+  bin_lineage_data(bin_size = 10)               # Bin into 10-day intervals ...
+
+```
+
+
+
+## plot 
+```{r ba2-frequency-trajectory}
+
+# Extract BA.2 data from COG-UK dataset
+ba2_cog <- sanger_major_lineage_trends %>%
+  filter(major_lineage == "BA.2") %>%
+  mutate(source = "COG-UK (Weekly)")
+
+# Extract BA.2 data from ONS-CIS dataset
+ba2_onscis <- onscis_binned %>%
+  filter(major_lineage == "BA.2") %>%
+  mutate(source = "ONS-CIS (10-day Binned)")
+
+
+# Plot 
+source(here("functions", "plotting.R"))
+plot_ba2_frequency_comparison(ba2_cog, ba2_onscis)
+```
+
+# comment 
+Analysis: compare the two trajectories. Is there a difference in the timing of BA.2’s rise and when it reaches fixation? Reflect on potential reasons for these differences
+(sampling strategies and geographical or temporal biases in data collection)?
+
+
 
 ---
 
 ## **Question 3: Variant Fixation Analysis**
+Question 3
+Using the Sanger dataset, determine which variant—B.1.617.2, BA.1, or BA.2—reached
+fixation the fastest and exhibited the highest selective advantage under a logistic growth
+model. Use weekly counts to measure the selective advantage (𝑠).
 
 ```{r logistic-growth}
 # Logistic growth model

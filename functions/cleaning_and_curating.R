@@ -16,34 +16,17 @@ library(janitor)
 # Cleaning ----
 # This set of functions helps to ...
 
-# Function to standardize column names and rename key columns
-clean_col_names <- function(raw_data) {
-  raw_data %>%
-    clean_names() %>%  # Converts column names to snake_case
-    rename(
-      collection_date = date) # Rename date for clarity
-}
 
-# A function to remove any empty columns or rows
+# Function to remove any empty columns or rows
 remove_empty_entries <- function(raw_data) {
   raw_data %>%
     remove_empty(c("rows", "cols"))
 }
 
-# A function to ensure all the variables are in the correct format 
-clean_data_format <- function(raw_data) {
-  raw_data %>%
-    mutate(
-      collection_date = as.Date(collection_date),
-      lineage = as.character(lineage),
-      count = as.numeric(count)
-    )
-}
-
 # Function to identify and rename the variants of focus as the major lineages
 classify_major_lineages <- function(raw_data, major_lineages) {
   raw_data %>%
-    mutate(lineage = ifelse(lineage %in% major_lineages, lineage, "Other"))
+    mutate(major_lineage = ifelse(major_lineage %in% major_lineages, major_lineage, "Other"))
 }
 
 # Processing cleaned data ----
@@ -67,7 +50,7 @@ classify_major_lineages <- function(raw_data, major_lineages) {
 # # The function enables to sum all the different strains at a given date, which you can then track over time.
 curate_lineage_trend_data <- function(data) {
   data %>%
-    group_by(collection_date, lineage) %>%  # Aggregate by date and lineage
+    group_by(collection_date, major_lineage) %>%  # Aggregate by date and lineage
     summarise(
       lineage_count = sum(count, na.rm = TRUE),  # Total count per lineage per day/week
       .groups = "drop"
@@ -80,6 +63,22 @@ curate_lineage_trend_data <- function(data) {
     ungroup()
 }
 
+# Function to bin lineage trend data into specified intervals
+bin_lineage_data <- function(data, bin_size = 10) {
+  data %>%
+    mutate(
+      collection_date_bin = as.Date(
+        floor(as.numeric(collection_date) / bin_size) * bin_size,
+        origin = "1970-01-01")) %>%  # Round dates to nearest bin
+    group_by(collection_date_bin, major_lineage) %>%
+    summarise(
+      lineage_count = sum(lineage_count, na.rm = TRUE),  # Aggregate counts in bins
+      total_count = sum(total_count, na.rm = TRUE),  # Aggregate total counts in bins
+      .groups = "drop"
+    ) %>%
+    mutate(lineage_frequency = lineage_count / total_count) %>%  # Recalculate frequencies
+    ungroup()
+}
 
 # Function to drop specific columns based on a provided list of column names
 drop_cols <- function(clean_data, columns_names) {

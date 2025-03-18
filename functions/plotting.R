@@ -32,14 +32,14 @@ lineage_colors <- c(
 
 # Function to plot stacked area plot of total variant counts ----
 plot_total_lineage_counts <- function(data) {
-  ggplot(data, aes(x = collection_date, y = total_count, fill = lineage)) +
+  ggplot(data, aes(x = collection_date, y = total_count, fill = major_lineage)) +
     geom_area(position = "stack") +  # Ensure proper stacking of counts
     scale_fill_manual(values = lineage_colors) +  # Apply colorblind-friendly palette
     labs(
       title = "Total Counts of Major Lineages Over Time",
       x = "Collection Date",
       y = "Total Count",
-      fill = "Variant"
+      fill = "Lineage"
     ) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -48,14 +48,41 @@ plot_total_lineage_counts <- function(data) {
 
 # Function to plot stacked area plot of variant frequencies ----
 plot_lineage_frequencies <- function(data) {
-  ggplot(data, aes(x = collection_date, y = lineage_frequency, fill = lineage)) +
+  ggplot(data, aes(x = collection_date, y = lineage_frequency, fill = major_lineage)) +
     geom_area(position = "fill") +  # Stacked area plot (normalized)
     scale_fill_manual(values = lineage_colors) +  # Apply custom colors
     labs(
       title = "Frequency of Major Variants Over Time",
       x = "Collection Date",
       y = "Proportion",
-      fill = "Variant"
+      fill = "Lineage"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+
+#Function
+plot_ba2_frequency_comparison <- function(ba2_cog, ba2_onscis) {
+  ggplot() +
+    # COG-UK Data (Weekly)
+    geom_line(data = ba2_cog, 
+              aes(x = collection_date, y = lineage_frequency, color = source), 
+              linewidth = 1) +
+    
+    # ONS-CIS Data (10-day Binned)
+    geom_line(data = ba2_onscis, 
+              aes(x = collection_date_bin, y = lineage_frequency, color = source), 
+              linewidth = 1) + 
+    
+    # Labels & Theme
+    scale_color_manual(values = c("COG-UK (Weekly)" = "#D55E00", 
+                                  "ONS-CIS (10-day Binned)" = "#CC6677")) + 
+    labs(
+      title = "BA.2 Frequency Trajectory (COG-UK vs ONS-CIS)",
+      x = "Collection Date",
+      y = "Frequency",
+      color = "Dataset Source"
     ) +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
