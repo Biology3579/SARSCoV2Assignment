@@ -17,17 +17,77 @@ library(janitor)
 # This set of functions helps to ...
 
 
-# Function to remove any empty columns or rows
-remove_empty_entries <- function(raw_data) {
+#Function to ...
+process_sanger_data <- function(raw_data, major_lineages) {
   raw_data %>%
-    remove_empty(c("rows", "cols"))
+    rename(collection_date = date, major_lineage = lineage) %>%  # Standardize column names
+    mutate(
+      collection_date = as.Date(collection_date),  # Ensure correct date format
+      major_lineage = as.character(major_lineage),  # Ensure lineage is a character variable
+      count = as.numeric(count)  # Ensure count is numeric
+    ) %>%
+    classify_major_lineages(major_lineages) %>%  # Identify and classify major lineages
+    group_by(collection_date, major_lineage) %>%
+    summarise(lineage_count = sum(count, na.rm = TRUE), .groups = "drop") %>%  # Aggregate lineage counts
+    group_by(collection_date) %>%
+    mutate(
+      total_count = sum(lineage_count),  # Compute total samples per date
+      lineage_frequency = lineage_count / total_count  # Compute frequency per lineage
+    ) %>%
+    ungroup()
 }
 
-# Function to identify and rename the variants of focus as the major lineages
-classify_major_lineages <- function(raw_data, major_lineages) {
+
+#Function to ...
+process_onscis_data <- function(raw_data, bin_size = 10) {
   raw_data %>%
-    mutate(major_lineage = ifelse(major_lineage %in% major_lineages, major_lineage, "Other"))
+    mutate(
+      collection_date = as.Date(collection_date),  
+      major_lineage = as.character(major_lineage)  
+    ) %>%
+    group_by(collection_date, major_lineage) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    ungroup() %>%
+    
+    #Apply consistent binning aligned to 1970-01-01 (to match `aggregate()` method)
+    mutate(
+      collection_date_bin = as.Date(
+        floor(as.numeric(collection_date) / bin_size) * bin_size,
+        origin = "1970-01-01" )) %>%
+    
+    #Aggregate after binning
+    group_by(collection_date_bin, major_lineage) %>%
+    summarise(
+      lineage_count = sum(count, na.rm = TRUE),
+      .groups = "drop") %>%
+    
+    #Compute total count per bin for frequency calculation
+    group_by(collection_date_bin) %>%
+    mutate(
+      total_count = sum(lineage_count, na.rm = TRUE),
+      lineage_frequency = lineage_count / total_count) %>%
+    ungroup()
 }
+
+#Fucntion
+process_delta_data <- function(raw_data) {
+  raw_data %>%
+    remove_empty_entries() %>%  # Remove empty rows/columns
+    filter(phecname != "") %>%  # Remove rows with missing region names
+    mutate(
+      date = as.Date(date),  # Convert to Date format
+      Delta = as.numeric(Delta)  # Convert logical to numeric (1 = TRUE, 0 = FALSE)
+    ) %>%
+    group_by(phecname, date) %>%  # Group by region and date
+    summarise(
+      total_samples = n(),  # Compute total samples per region per date
+      delta_count = sum(Delta),  # Count Delta variant occurrences
+      delta_frequency = delta_count / total_samples,  # Compute Delta frequency
+      .groups = "drop"
+    )
+}
+
+
 
 # Processing cleaned data ----
 # Here I curate the clean penguins data set specifically for my analysis:
@@ -44,42 +104,6 @@ classify_major_lineages <- function(raw_data, major_lineages) {
 #This step is performed separately from the cleaning process to ensure that the 
 #original cleaned dataset remains intact and is not overwritten. 
 #This allows for easy reuse of the cleaned data for further analyses.
-
-
-# Function to aggregate lineage counts over time with 10-day binning.
-# # The function enables to sum all the different strains at a given date, which you can then track over time.
-curate_lineage_trend_data <- function(data) {
-  data %>%
-    group_by(collection_date, major_lineage) %>%  # Aggregate by date and lineage
-      # Grouping ensures that all sequences of the same lineage on a given date are counted together, giving a clearer picture of how the lineage is spreading.
-    summarise(
-      lineage_count = sum(count, na.rm = TRUE),  # Total count per lineage per day/week
-      .groups = "drop"
-    ) %>%
-    group_by(collection_date) %>%
-    mutate(
-      total_count = sum(lineage_count),  # Compute total samples per date
-      lineage_frequency = lineage_count / total_count  # Compute frequency per lineage
-    ) %>%
-    ungroup()
-}
-
-# Function to bin lineage trend data into specified intervals
-bin_lineage_data <- function(data, bin_size = 10) {
-  data %>%
-    mutate(
-      collection_date_bin = as.Date(
-        floor(as.numeric(collection_date) / bin_size) * bin_size,
-        origin = "1970-01-01")) %>%  # Round dates to nearest bin
-    group_by(collection_date_bin, major_lineage) %>%
-    summarise(
-      lineage_count = sum(lineage_count, na.rm = TRUE),  # Aggregate counts in bins
-      total_count = sum(total_count, na.rm = TRUE),  # Aggregate total counts in bins
-      .groups = "drop"
-    ) %>%
-    mutate(lineage_frequency = lineage_count / total_count) %>%  # Recalculate frequencies
-    ungroup()
-}
 
 
 # Fucntions to ...

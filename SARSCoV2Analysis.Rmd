@@ -61,33 +61,22 @@ head(sanger_raw) #Check ...
 
 
 ```{r clean-sanger-data}
-#Clean the raw data and save it separately
-source(here("functions", "cleaning_and_curating.R"))
-sanger_clean <- sanger_raw %>%
-  clean_names() %>%  # Standardize column names to snake_case
-  rename(
-      collection_date = date,  # Rename date for consistency with other data sets
-      major_lineage = lineage) %>% # Rename date for consistency with other data sets 
-  remove_empty_entries() %>%
-  mutate(
-    collection_date = as.Date(collection_date),  # Ensure date is recognised as date
-    major_lineage = as.character(major_lineage),  # Ensure lineage is character
-    count = as.numeric(count)) %>%  # Ensure count is numeric
-  classify_major_lineages(c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB"))
+#Prepare the raw data for analysis
 
-#Save data 
-write_csv(sanger_clean, here("data", "sanger_clean.csv"))
+# Load functions
+source(here("functions", "cleaning_and_curating.R"))
+
+# Process Sanger data using the function
+sanger_analysis_data <- process_sanger_data(
+  sanger_raw, 
+  major_lineages = c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB")
+)
+
+# Save the cleaned and processed dataset
+write_csv(sanger_analysis_data, here("data", "sanger_analysis_data.csv"))
 ```
 
 ### **1.2 Stacked Area Plots**
-
-In order to ....
-this fucntion does this ...
-```{r curate-sanger-data}
-source(here("functions", "cleaning_and_curating.R"))
-# Prepare data
-sanger_major_lineage_trends <- curate_lineage_trend_data(sanger_clean)
-```
 
 
 weekly...
@@ -95,13 +84,13 @@ weekly...
 ```{r sanger-total-counts-plot}
 source(here("functions", "plotting.R"))
 # Generate the stacked area plots
-plot_total_lineage_counts(sanger_major_lineage_trends)   # Total counts of each lineage over time
+plot_total_lineage_counts(sanger_analysis_data)   # Total counts of each lineage over time
 
 ```
 
 ```{r sanger-frequencies-plot}
 source(here("functions", "plotting.R"))
-plot_lineage_frequencies(sanger_major_lineage_trends)  # Proportions of each lineage over time
+plot_lineage_frequencies(sanger_analysis_data)  # Proportions of each lineage over time
 
 ```
 
@@ -122,49 +111,33 @@ head(onscis_raw)
 ```
 
 ```{r clean-onscis-data}
-# Load cleaning functions
+# ------------------------------------------
+# Load and Process ONS-CIS Data
+# ------------------------------------------
+
+# Load functions
 source(here("functions", "cleaning_and_curating.R"))
 
-# Clean the raw data
-onscis_clean <- onscis_raw %>%
-  remove_empty_entries() %>%
-  mutate(
-    collection_date = as.Date(collection_date),  # Ensure collection date is formatted as Date
-    major_lineage = as.character(major_lineage),  # Ensure lineage is character
-    pangolin_call = as.character(pangolin_call)  # Keep pangolin_call as character
-  )
+# Process ONS-CIS data using the function (with 10-day binning)
+onscis_analysis_data <- process_onscis_data(onscis_raw, bin_size = 10)
 
-# Save the cleaned data
-write_csv(onscis_clean, here("data", "onscis_clean.csv"))
+# Save the cleaned and processed dataset
+write_csv(onscis_analysis_data, here("data", "onscis_analysis_data.csv"))
 
 ```
-
-```{r curate-onscis-data}
-source(here("functions", "cleaning_and_curating.R"))
-# Generate count data, compute trends, and bin data (if needed)
-onscis_binned <- onscis_clean %>%
-  group_by(collection_date, major_lineage) %>%
-  summarise(count = n(), .groups = "drop") %>%  # Generate count data
-  curate_lineage_trend_data() %>%               # Compute lineage trends
-  bin_lineage_data(bin_size = 10)               # Bin into 10-day intervals ...
-
-```
-
-
 
 ## plot 
 ```{r ba2-frequency-trajectory}
 
 # Extract BA.2 data from COG-UK dataset
-ba2_cog <- sanger_major_lineage_trends %>%
+ba2_cog <- sanger_analysis_data %>%
   filter(major_lineage == "BA.2") %>%
   mutate(source = "COG-UK (Weekly)")
 
 # Extract BA.2 data from ONS-CIS dataset
-ba2_onscis <- onscis_binned %>%
+ba2_onscis <- onscis_analysis_data %>%
   filter(major_lineage == "BA.2") %>%
   mutate(source = "ONS-CIS (10-day Binned)")
-
 
 # Plot 
 source(here("functions", "plotting.R"))
@@ -189,7 +162,7 @@ Discussion...
 
 ```{r estimate-delta-growth-part1, echo=TRUE, message=FALSE, warning=FALSE}
 # Filter the Sanger dataset for the three variants
-sanger_selected_variants <- sanger_major_lineage_trends %>%
+sanger_selected_variants <- sanger_analysis_data %>%
   filter(major_lineage %in% c("B.1.617.2", "BA.1", "BA.2"))
 
 # Plot frequency trajectories for the selected variants
@@ -211,9 +184,9 @@ ggplot(sanger_selected_variants, aes(x = collection_date, y = lineage_frequency,
 
 # Extract growth phase dates for each variant
 growth_phases <- bind_rows(
-  extract_growth_phase_dates(sanger_major_lineage_trends, "B.1.617.2"),
-  extract_growth_phase_dates(sanger_major_lineage_trends, "BA.1"),
-  extract_growth_phase_dates(sanger_major_lineage_trends, "BA.2")
+  extract_growth_phase_dates(sanger_analysis_data, "B.1.617.2"),
+  extract_growth_phase_dates(sanger_analysis_data, "BA.1"),
+  extract_growth_phase_dates(sanger_analysis_data, "BA.2")
 )
 
 print(growth_phases)
@@ -222,10 +195,10 @@ print(growth_phases)
 
 
 ```{r, warning=FALSE}
-B16172_growth_phase <- sanger_major_lineage_trends %>%
+B16172_growth_phase <- sanger_analysis_data %>%
   filter(
     major_lineage == "B.1.617.2",  # Select Delta variant
-    collection_date >= as.Date("2021-03-27") & collection_date <= as.Date("2021-06-19")  # Growth phase interval
+    collection_date >= as.Date("2021-04-03") & collection_date <= as.Date("2021-06-19")  # Growth phase interval
   )
 # Define Logistic Growth Function (Ensure this is run first)
 logistic_growth <- function(t, s, f0) {
@@ -276,9 +249,9 @@ ggplot(B16172_growth_phase, aes(x = collection_date)) +
 ```
 ```{r, warning=FALSE}
 # Subset data to only include the increasing trajectory for BA.1
-BA1_growth_phase <- sanger_major_lineage_trends %>%
+BA1_growth_phase <- sanger_analysis_data %>%
   filter(major_lineage == "BA.1", 
-         collection_date >= as.Date("2021-10-30") & collection_date <= as.Date("2022-01-08"))
+         collection_date >= as.Date("2021-10-23") & collection_date <= as.Date("2022-01-08"))
 
 # Define Logistic Growth Function (Ensure this is run first)
 logistic_growth <- function(t, s, f0) {
@@ -330,9 +303,9 @@ ggplot(BA1_growth_phase, aes(x = collection_date)) +
 	
 ```{r, warning=FALSE}
 # Subset data to only include the increasing trajectory for BA.1
-BA2_growth_phase <- sanger_major_lineage_trends %>%
+BA2_growth_phase <- sanger_analysis_data %>%
   filter(major_lineage == "BA.2", 
-         collection_date >= as.Date("2021-01-01") & collection_date <= as.Date("2022-04-16"))
+         collection_date >= as.Date("2021-12-11") & collection_date <= as.Date("2022-04-16"))
 
 # Define Logistic Growth Function (Ensure this is run first)
 logistic_growth <- function(t, s, f0) {
@@ -366,14 +339,14 @@ ggplot(BA2_growth_phase, aes(x = collection_date)) +
   geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), color = "red", size = 1) +
   annotate(
     "text", 
-    x = as.Date("2021-01-01"), 
+    x = as.Date("2021-12-01"), 
     y = 0.8, 
     label = paste0("s= ", round(growth_rate, 4)), 
     color = "red", 
     size = 5
   ) +
   labs(
-    title = "Logistic growth fit for BA.1 variant frequency",
+    title = "Logistic growth fit for BA.2 variant frequency",
     x = "Collection date",
     y = "Frequency"
   ) +
@@ -394,9 +367,9 @@ logistic_growth <- function(t, s, f0) {
 
 # Fit logistic growth model for each variant using inline date definitions
 growth_rates <- bind_rows(
-  fit_variant_growth(sanger_major_lineage_trends, "B.1.617.2", start_date = as.Date("2021-04-03"), end_date = as.Date("2021-06-19")),
-  fit_variant_growth(sanger_major_lineage_trends, "BA.1", start_date = as.Date("2021-10-30"), end_date = as.Date("2022-01-08")),
-  fit_variant_growth(sanger_major_lineage_trends, "BA.2", start_date = as.Date("2022-01-01"), end_date = as.Date("2022-04-16"))
+  fit_variant_growth(sanger_analysis_data, "B.1.617.2", start_date = as.Date("2021-04-03"), end_date = as.Date("2021-06-19")),
+  fit_variant_growth(sanger_analysis_data, "BA.1", start_date = as.Date("2021-10-30"), end_date = as.Date("2022-01-08")),
+  fit_variant_growth(sanger_analysis_data, "BA.2", start_date = as.Date("2022-01-01"), end_date = as.Date("2022-04-16"))
 )
 print(growth_rates)
 
@@ -423,58 +396,631 @@ growth_plots <- pmap(list(
 # Arrange plots side by side
 ggarrange(plotlist = growth_plots, ncol = 3, nrow = 1)
 ```
-
+Fix...
 ---
 
 ## **Question 4: Regional Analysis of Delta Variant**
 
-```{r delta-region-analysis}
-# Load Delta dataset
-delta_data <- readRDS("data/delta-d2.rds")
-delta_data <- subset(delta_data, phecname != "")
+```{r load-raw-data}
+# Load RDS data
+delta_raw <- readRDS(here("data", "delta-d2.rds"))
 
-# Delta frequencies by region
-ggplot(delta_data, aes(x = week, y = prop, color = phecname)) +
-  geom_line() +
-  labs(title = "Delta Variant Frequency by Region", x = "Week", y = "Proportion", color = "Region") +
-  theme_minimal()
+# Check the structure of the loaded data
+head(delta_raw)
+
 ```
+
+```{r}
+# ------------------------------------------
+# Load and Process ONS-CIS Data
+# ------------------------------------------
+
+# Load functions
+source(here("functions", "cleaning_and_curating.R"))
+
+# Process ONS-CIS data using the function (with 10-day binning)
+delta_analysis_data <- process_delta_data(delta_raw)
+
+# Save the cleaned and processed dataset
+write_csv(delta_analysis_data, here("data", "delta_analysis_data.csv"))
+
+```
+
+
+```{r delta-region-analysis}
+# Plot Delta frequencies by region
+
+#First 
+delta_weekly <- delta_analysis_data %>%
+  mutate(week = floor_date(date, unit = "week")) %>%
+  group_by(week, phecname) %>%
+  summarise(
+    delta_frequency = mean(delta_frequency, na.rm = TRUE), 
+    .groups = "drop"
+  )
+
+#  Load functions
+source(here("functions", "plotting.R"))
+plot_delta_frequencies(delta_weekly)
+
+```
+```{r}
+# Define Logistic Growth Function
+logistic_growth <- function(t, s, f0) {
+  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
+}
+
+# Function to fit logistic growth model and return predictions
+fit_logistic_growth <- function(region_data) {
+  # Ensure data is sorted by week
+  region_data <- region_data %>% arrange(week)
+  
+  # Define time since first observation
+  region_data <- region_data %>%
+    mutate(time = as.numeric(week - min(week)))
+
+  # Fit logistic model using nls()
+  nls_fit <- tryCatch(
+    nls(
+      delta_frequency ~ logistic_growth(time, s, f0),
+      data = region_data,
+      start = list(s = 0.1, f0 = min(region_data$delta_frequency[region_data$delta_frequency > 0])),
+      control = nls.control(maxiter = 100)
+    ),
+    error = function(e) return(NULL) # If fitting fails, return NULL
+  )
+  
+  if (is.null(nls_fit)) return(NULL)  # Skip regions where model fails
+
+  # Extract growth rate (s) and initial frequency (f0)
+  coef_values <- coef(nls_fit)
+  growth_rate <- coef_values["s"]
+  f0 <- coef_values["f0"]
+
+  # Generate smooth logistic predictions
+  smooth_dates <- seq(min(region_data$week), max(region_data$week), by = "1 day")
+  smooth_predictions <- data.frame(
+    week = smooth_dates,
+    predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(region_data$week)), growth_rate, f0),
+    phecname = unique(region_data$phecname)
+  )
+
+  return(smooth_predictions)
+}
+
+
+# Apply logistic fitting function to each region
+logistic_predictions <- delta_weekly %>%
+  group_by(phecname) %>%
+  group_split() %>%
+  map_dfr(fit_logistic_growth)
+
+```
+
+```{r}
+# Load required libraries
+library(ggplot2)
+
+# Plot observed data and fitted logistic curves
+ggplot(delta_weekly, aes(x = week, y = delta_frequency, color = phecname)) +
+  geom_point(size = 1.8, alpha = 0.7) +  # Observed frequencies
+  geom_line(data = logistic_predictions, aes(x = week, y = predicted_frequency, group = phecname, color = phecname),
+             size = 1) +  # Logistic growth curves
+  scale_color_viridis_d() +  # Colorblind-friendly palette
+  labs(
+    title = "Logistic Growth Fit for Delta Variant Frequency by Region",
+    x = "Collection Date (Week)",
+    y = "Frequency of Delta",
+    color = "Region"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~phecname)  # Facet by region
+
+```
+```{r}
+# Load required libraries
+library(tidyverse)
+library(ggplot2)
+library(purrr)
+library(knitr)  # For displaying tables in RMarkdown
+
+# ------------------------------------------
+# Define Logistic Growth Function
+# ------------------------------------------
+logistic_growth <- function(t, s, f0) {
+  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
+}
+
+# ------------------------------------------
+# Fit Logistic Growth Model for Each Region
+# ------------------------------------------
+fit_logistic_growth <- function(region_data) {
+  # Ensure data is sorted by week
+  region_data <- region_data %>% arrange(week)
+  
+  # Define time since first observation
+  region_data <- region_data %>%
+    mutate(time = as.numeric(week - min(week)))
+
+  # Fit logistic model using nls()
+  nls_fit <- tryCatch(
+    nls(
+      delta_frequency ~ logistic_growth(time, s, f0),
+      data = region_data,
+      start = list(s = 0.1, f0 = min(region_data$delta_frequency[region_data$delta_frequency > 0])),
+      control = nls.control(maxiter = 100)
+    ),
+    error = function(e) return(NULL) # If fitting fails, return NULL
+  )
+  
+  if (is.null(nls_fit)) return(NULL)  # Skip regions where model fails
+
+  # Extract growth rate (s) and initial frequency (f0)
+  coef_values <- coef(nls_fit)
+  growth_rate <- coef_values["s"]
+  f0 <- coef_values["f0"]
+
+  # Generate smooth logistic predictions
+  smooth_dates <- seq(min(region_data$week), max(region_data$week), by = "1 day")
+  smooth_predictions <- data.frame(
+    week = smooth_dates,
+    predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(region_data$week)), growth_rate, f0),
+    phecname = unique(region_data$phecname)
+  )
+
+  # Return both logistic predictions and coefficients
+  return(list(predictions = smooth_predictions, estimates = tibble(phecname = unique(region_data$phecname), s = growth_rate, f0 = f0)))
+}
+
+# ------------------------------------------
+# Apply Logistic Growth Model to Each Region
+# ------------------------------------------
+logistic_results <- delta_weekly %>%
+  group_by(phecname) %>%
+  group_split() %>%
+  map(fit_logistic_growth)
+
+# Extract logistic predictions for visualization
+logistic_predictions <- map_dfr(logistic_results, "predictions")
+
+# Extract growth rate (s) and initial frequency (f0) for summary table
+growth_estimates <- map_dfr(logistic_results, "estimates")
+
+# ------------------------------------------
+# Plot Observed Data and Fitted Logistic Curves
+# ------------------------------------------
+ggplot(delta_weekly, aes(x = week, y = delta_frequency, color = phecname)) +
+  geom_point(size = 1.8, alpha = 0.7) +  # Observed frequencies
+  geom_line(data = logistic_predictions, aes(x = week, y = predicted_frequency, group = phecname, color = phecname),
+             size = 1) +  # Logistic growth curves
+  scale_color_viridis_d() +  # Colorblind-friendly palette
+  labs(
+    title = "Logistic Growth Fit for Delta Variant Frequency by Region",
+    x = "Collection Date (Week)",
+    y = "Frequency of Delta",
+    color = "Region"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~phecname)  # Facet by region
+
+# ------------------------------------------
+# Display Growth Estimates (s and f0) for Each Region
+# ------------------------------------------
+# Print the table in a nicely formatted way
+kable(growth_estimates, format = "markdown", col.names = c("Region", "Growth Rate (s)", "Initial Frequency (f0)"))
+
+```
+
+Interpretation of Delta Variant Growth Analysis
+i) Identifying the Region with the Fastest Delta Outbreak
+The region West Midlands exhibited the highest growth rate (s = 0.1577), indicating the most rapidly growing outbreak of the Delta variant in that region.
+The region South West had the earliest rise in frequencies with the highest initial frequency (f₀ = 0.0416), suggesting Delta was detected earlier and had a head start in this region compared to others.
+Discussion: Why Did Delta Emerge at Different Times in Different Regions?
+Several factors could explain these regional differences in Delta's emergence and spread:
+
+Population Density & Mobility:
+
+London, despite having a relatively high f₀, had a moderate growth rate. This suggests that high population density and mobility may have facilitated early introductions but not necessarily the fastest growth.
+The West Midlands, on the other hand, had a lower f₀ but the highest growth rate (s), indicating rapid spread after the initial introduction.
+Testing & Surveillance Differences:
+
+Some regions might have had more intensive genomic surveillance, leading to earlier detection of the Delta variant.
+Travel & Introduction Events:
+
+Areas with major transport hubs or international travel links (e.g., London, South East) may have seen earlier introductions.
+In contrast, regions with lower initial detection (small f₀) but high growth rates (e.g., West Midlands) might have experienced fewer early introductions, but Delta spread rapidly once established.
+Sociodemographic & Behavioral Factors:
+
+Differences in vaccination rates, social distancing policies, and regional public health interventions could have influenced the speed of Delta’s spread.
+Areas with large essential worker populations (e.g., industrial hubs) might have seen higher workplace transmission rates.
+ii) Could Delta’s Growth Across Regions Be Associated with a Founder Effect?
+Definition of Founder Effect:
+A founder effect occurs when a new population is established by a small number of initial individuals, leading to reduced genetic variation and possibly different growth dynamics compared to the broader population.
+
+Does the Observed Data Support a Founder Effect?
+Evidence Supporting a Founder Effect:
+
+The initial frequency (f₀) varies significantly across regions, indicating that Delta was introduced at different times in different places.
+Regions with a very low f₀ but high s (e.g., West Midlands, Yorkshire and Humber) suggest a scenario where a few early cases initiated rapid exponential growth.
+If Delta had spread uniformly across the UK, we would expect similar f₀ values across all regions. Instead, we see regional variation, indicating multiple introduction events rather than a single uniform spread.
+Evidence Against a Founder Effect:
+
+If the founder effect were the dominant driver, we might expect more extreme differences in growth rates (s) due to initial sampling bias.
+The presence of high f₀ in South West (0.0416) suggests that some regions had early, widespread community transmission, reducing the likelihood that a single founder event shaped all outbreaks.
+Conclusion:
+
+The data suggests that multiple introduction events rather than a single founder event were responsible for Delta's spread.
+However, in regions with very low f₀ but high growth rates (e.g., West Midlands, Yorkshire and Humber), a local founder effect could have played a role in amplifying regional outbreaks.
+The founder effect alone does not explain Delta’s spread across the entire UK, but it may have contributed in certain regions where a few early cases triggered rapid outbreaks.
+Final Takeaways:
+Fastest-growing outbreak: West Midlands (s = 0.1577)
+Earliest rise in frequency: South West (f₀ = 0.0416)
+Delta’s spread was influenced by:
+Population density and mobility
+Regional surveillance efforts
+Travel patterns and introduction events
+Sociodemographic factors
+Founder effect likely played a role in some regions but does not fully explain Delta’s nationwide spread.
+This analysis highlights the complexity of viral spread, where both stochastic introduction events and structured population dynamics shape epidemic trajectories.
+
 
 ---
 
 ## **Question 5: Delta Incidence and Rt Estimation**
 
-```{r delta-incidence}
-# Load daily cases
-daily_cases <- read.csv("data/daily-new-confirmed-covid-19-cases.csv")
 
-delta_incidence <- genomes_freq %>% 
-  filter(lineage == "B.1.617.2") %>% 
-  mutate(daily_cases = daily_cases$count * prop)
+1. ...
+Up until now, our analysis of the Delta variant has been based on sequencing data from samples sent to the Sanger Institute. This approach allows us to track the relative growth and spread of Delta compared to other variants, but it does not directly measure the true incidence of Delta infections in England. Incidence refers to the actual number of people who were infected with Delta at a given time, regardless of whether their cases were sequenced or even detected.
 
-# Plot estimated daily cases
-ggplot(delta_incidence, aes(x = week)) +
-  geom_line(aes(y = daily_cases, color = "Estimated Delta Cases")) +
-  geom_line(aes(y = count, color = "Sequenced Delta Cases")) +
-  labs(title = "Estimated vs. Sequenced Delta Cases", x = "Week", y = "Cases", color = "Dataset") +
-  theme_minimal()
+There are several reasons why sequencing-based estimates differ from true incidence. First, not all PCR-positive samples are sequenced, meaning that the proportion of Delta cases observed in sequencing data is not necessarily representative of all infections in the community. Some regions may have higher sequencing rates than others, creating geographic biases. Additionally, sequencing tends to focus on hospitalized cases or samples from targeted surveillance efforts, which may overrepresent more severe cases while missing mild or asymptomatic infections that are less likely to be tested.
+
+Another major limitation is testing bias. Many people who contract Delta may never get tested, either because they have mild symptoms, do not experience symptoms at all, or do not have access to testing facilities. Since sequencing relies on PCR-positive samples, it inherently excludes undiagnosed cases, leading to an underestimation of the true number of infections.
+
+Additionally, sequencing introduces a time lag in reporting. While PCR test results are available within a day or two, sequencing takes significantly longer. By the time sequencing data is available, the actual number of Delta cases in the population may have already changed, making it difficult to use this data for real-time incidence tracking.
+
+To estimate the true incidence of Delta, we need to rely on additional data sources beyond sequencing. One approach is to use ONS-CIS survey data, which estimates the total number of COVID-19 cases, including those that were not sequenced. If we know what proportion of sequenced cases were Delta, we can apply this proportion to the total estimated infections to approximate the true number of Delta cases.
+
+Other useful approaches include wastewater surveillance, which detects SARS-CoV-2 RNA in sewage samples and provides an unbiased estimate of community transmission. Hospitalization data can also offer insights—if we compare the number of Delta-related hospitalizations to overall COVID-19 hospitalizations, we can estimate the relative burden of Delta. Epidemiological models, such as SIR (Susceptible-Infected-Recovered) models, can further refine estimates by incorporating factors like transmission rates and vaccination coverage.
+
+In conclusion, while sequencing provides valuable insights into variant proportions and growth rates, it does not capture the true scale of Delta infections. To obtain a more accurate picture of Delta’s spread in England, we must integrate multiple data sources, including population surveys, wastewater surveillance, and hospital records. This broader approach is essential for making informed public health decisions and effectively responding to the pandemic.
+
+
+
+
+2. 
+
+```{r load-raw-data}
+# Load ... data
+daily_case_raw <- read.csv(here("data", "daily-new-confirmed-covid-19-cases.csv"))
+head(daily_case_raw) #Check ...
 ```
 
-```{r rt-calculation}
+```{r}
+
+# Function to process COVID-19 case data
+process_case_data <- function(raw_data) {
+  raw_data %>%
+    mutate(
+      date = as.Date(date),  # Convert date column to Date format
+      cases_sevendayaveraged = as.numeric(cases_sevendayaveraged)  # Ensure numerical format
+    )
+}
+
+# Apply function to dataset
+daily_case_analysis_data <- process_case_data(daily_case_raw)
+
+# View first few rows
+head(daily_case_analysis_data)
+```
+
+```{r}
+# Filter the Sanger dataset to only include Delta (B.1.617.2) sequences
+sanger_delta <- sanger_analysis_data %>%
+  filter(major_lineage == "B.1.617.2") %>%  # Focus on Delta cases
+  rename(week = collection_date)  # Rename for clarity (since this is weekly data)
+
+# View the first few rows to confirm structure
+head(sanger_delta)
+
+```
+
+Because wekkly dtaa starts a lot later than the daily data, i will discard the frist few moths and start from the the first week reporterd in the snager dataset - 2020-09-05 (which is a monday)
+
+```{r}
+delta_daily_filtered <- delta_daily_raw %>%
+  filter(date >= as.Date("2020-09-05"))  # Remove earlier dates
+
+```
+
+I will then group eevry 7 days of the daily and make it match with each week. 
+then i multiply 
+
+```{r}
+# Merge with Sanger dataset to get weekly Delta proportions
+daily_cases_with_delta <- delta_daily_filtered %>%
+  left_join(sanger_delta, by = "week")  # Assign each daily case count to its corresponding weekly Delta proportion
+
+# View the first few rows to check
+head(daily_cases_with_delta)
+```
+```{r}
+# Ensure both datasets are correctly formatted
+delta_daily_filtered <- delta_daily_raw %>%
+  filter(date >= as.Date("2020-09-05")) %>%  # Start from the first date in Sanger data
+  mutate(date = as.Date(date))  # Ensure date format
+
+sanger_delta <- sanger_analysis_data %>%
+  filter(major_lineage == "B.1.617.2") %>%  # Keep only Delta lineage
+  select(collection_date, lineage_frequency) %>%  # Keep relevant columns
+  rename(week = collection_date)  # Rename collection_date to week for clarity
+
+# Assign each daily case count to the closest previous weekly proportion
+daily_cases_with_delta <- delta_daily_filtered %>%
+  mutate(
+    week = sanger_delta$week[findInterval(date, sanger_delta$week)]  # Match each date to the nearest past week
+  ) %>%
+  left_join(sanger_delta, by = "week")  # Merge with weekly Delta proportions
+
+# Convert week back to Date format
+daily_cases_with_delta$week <- as.Date(daily_cases_with_delta$week)
+
+# View first few rows
+head(daily_cases_with_delta)
+
+```
+
+now calcualte ..
+then i will gather the data in this dataset -> ... round so it makes more sense
+```{r}
+# Compute estimated Delta cases
+daily_cases_with_delta <- daily_cases_with_delta %>%
+  mutate(estimated_delta_cases = round(cases_sevendayaveraged * lineage_frequency)) # rpound so its a decimal!!
+
+```
+
+
+then i will plot...
+
+reflect on why the two coutns are different from each other 
+
+```{r}
+# Create a dataset for plotting
+plot_data <- daily_cases_with_delta %>%
+  select(date, estimated_delta_cases) %>%
+  rename(value = estimated_delta_cases) %>%
+  mutate(source = "Estimated Daily Delta Cases")
+
+# Prepare Sanger weekly sequence counts for plotting
+sanger_weekly <- sanger_analysis_data %>%
+  filter(major_lineage == "B.1.617.2") %>%  # Select Delta variant
+  select(collection_date, lineage_count) %>%
+  rename(value = lineage_count, date = collection_date) %>%
+  mutate(source = "Sanger Weekly Delta Sequences")
+
+# Combine both datasets
+combined_plot_data <- bind_rows(plot_data, sanger_weekly)
+
+```
+
+```{r}
+# Load necessary library
+library(ggplot2)
+
+# Create the plot
+ggplot(combined_plot_data, aes(x = date, y = value, color = source)) +
+  geom_line(size = 1) +  # Line plot
+  geom_point(size = 2, alpha = 0.7) +  # Points for clarity
+  scale_color_manual(values = c("Estimated Daily Delta Cases" = "red", 
+                                "Sanger Weekly Delta Sequences" = "blue")) +
+  labs(
+    title = "Estimated Daily Delta Cases vs. Weekly Sanger Sequences",
+    x = "Date",
+    y = "Count",
+    color = "Source"
+  ) +
+  theme_minimal()
+
+```
+
+Step 3: Reflection on the Differences
+The two counts are different because:
+
+Testing Bias
+
+The estimated Delta cases use all reported positive cases, while Sanger sequences come from a subset that was selected for sequencing.
+Not all positive cases were sequenced, leading to sampling bias in the Sanger dataset.
+Temporal Resolution
+
+Daily estimates provide a smoother trend, whereas weekly sequencing counts are more discrete and uneven (since sequencing may vary week to week).
+The weekly sequencing numbers can be affected by lab backlogs or sample collection timing.
+Scaling Effect
+
+The absolute numbers differ because the Sanger dataset captures only a fraction of all real cases.
+However, proportions should still broadly follow the same trends.
+Lag in Reporting
+
+The sequencing process takes time, which can lead to delays in when cases appear in the Sanger dataset vs. real reported cases.
+
+
+
+2. measurign the ... 
+
+```{r}
+# Load necessary libraries
 library(EpiEstim)
+library(ggplot2)
 
-# Estimate Rt
-rt_estimate <- estimate_R(delta_incidence$daily_cases, method = "parametric_si", config = make_config(mean_si = 4.7, std_si = 2.9))
+# Define the time range for Rt estimation - these dates were chosen beacsue ...
+start_date <- as.Date("2021-04-23")
+end_date <- as.Date("2021-11-01")
 
-# Plot Rt
-ggplot(rt_estimate$R, aes(x = t_end, y = `Mean(R)`, ymin = `Quantile.025(R)`, ymax = `Quantile.975(R)`)) +
-  geom_line() +
-  geom_ribbon(alpha = 0.2) +
-  labs(title = "Estimated Rt of Delta Variant", x = "Time", y = "Reproduction Number (Rt)") +
-  theme_minimal()
+# Filter estimated daily Delta cases within this date range
+delta_incidence_data <- daily_cases_with_delta %>%
+  filter(date >= start_date & date <= end_date) %>%
+  select(date, estimated_delta_cases) %>%
+  rename(dates = date, I = estimated_delta_cases)  # Rename columns for EpiEstim
+
 ```
 
----
+Step 2: Define Serial Interval Parameters
+Based on Delta transmission dynamics, we use:
+Mean serial interval = 4.1 days
+Standard deviation = 2.8 days
+
+why...
+```{r}
+# Define the serial interval
+serial_interval <- list(mean_si = 4.1, std_si = 2.8)
+
+```
+
+```{r}
+# Run EpiEstim to estimate Rt
+rt_results <- estimate_R(
+  incid = delta_incidence_data,
+  method = "parametric_si",
+  config = make_config(serial_interval)
+)
+
+# Extract the relevant R_t estimates
+rt_estimates <- rt_results$R
+  
+# Display the first few rows of R_t estimates
+head(rt_estimates)
+
+```
+
+```{r}
+max_rt <- rt_estimates %>%
+  arrange(desc(`Mean(R)`)) %>%
+  slice(1)
+
+print(max_rt)
+
+```
+
+```{r}
+
+# Calculate the mean R_t during the early phase
+mean_rt_early_phase <- mean(rt_estimates$`Mean(R)`, na.rm = TRUE)
+
+# Output the result
+print(paste("Mean R_t during the early phase (April 23 - Nov 1, 2021):", round(mean_rt_early_phase, 2)))
+
+```
+
+
+
+
+```{r}
+# Plot Rt estimates
+plot(rt_results, what = "R", legend = FALSE) +
+  labs(
+    title = expression("Time-varying reproduction number" ~ (R[t]) ~ "for Delta (Estimated Cases)"),
+    x = "Date",
+    y = expression("Reproduction number" ~ (R[t]))
+  ) +
+  theme_minimal()
+
+```
+Do the Estimates Differ Significantly?
+While the mean 
+𝑅
+𝑡
+R 
+t
+​
+  values are close (1.944 vs. 1.915), the key difference lies in the standard deviations:
+
+Our estimate (± 0.075) has a much smaller spread, meaning it is more precise.
+The ONS-CIS estimate (± 0.279) has a wider spread, meaning there is greater uncertainty in the estimate.
+Statistically, since our estimate falls within the confidence range of the ONS-CIS estimate (1.915 ± 0.279 = [1.636, 2.194]), the difference is not statistically significant. This suggests that both estimates are consistent with each other within the margin of error.
+
+Which Estimate is More Reliable?
+Our Sanger-Based Estimate (1.944 ± 0.075):
+More precise, with a smaller standard deviation.
+Likely reflects variant-specific transmission dynamics.
+However, it is based only on sequenced cases, which may not represent total infections.
+ONS-CIS Estimate (1.915 ± 0.279):
+Slightly lower precision due to a higher standard deviation.
+Based on a randomly sampled population, reducing testing biases.
+More reliable for overall transmission in the community, capturing asymptomatic cases.
+Conclusion
+Both estimates suggest rapid early spread of Delta (
+𝑅
+𝑡
+≈
+1.9
+R 
+t
+​
+ ≈1.9). Our Sanger-based estimate is more precise but potentially biased towards tested individuals, while the ONS-CIS estimate has higher uncertainty but is likely more representative of real-world transmission.
+
+. Both estimates suggest that, in the early phase, each Delta-infected individual was spreading the virus to nearly two other people, leading to rapid growth.
+
+However, methodological differences in data collection and sampling could contribute to minor variations:
+
+Sampling Strategy & Data Source Differences
+
+ONS-CIS Dataset:
+The ONS-CIS (Office for National Statistics COVID-19 Infection Survey) uses a random, representative sample of the population.
+This approach reduces bias since it includes individuals who may not have sought testing but were still infected.
+Sanger Dataset (Used in Our Estimate):
+The Sanger dataset relies on PCR-positive cases that were sent for sequencing.
+This means it is biased toward individuals who tested positive and had samples sequenced, likely underestimating infections in asymptomatic or untested individuals.
+Representativeness of Sequencing Data for Actual Infections
+
+The Sanger dataset provides valuable variant frequency trends, but it does not capture total infections accurately.
+The ONS-CIS dataset, in contrast, directly estimates prevalence in the community, potentially leading to a more reliable 
+𝑅
+𝑡
+R 
+t
+​
+  estimate.
+Which Estimate is More Reliable?
+The ONS-CIS estimate (
+𝑅
+𝑡
+=
+1.91
+R 
+t
+​
+ =1.91) is likely more reliable because:
+
+It is based on a structured random sampling approach, reducing bias.
+It includes asymptomatic individuals who wouldn’t have been tested otherwise.
+It does not depend on sequencing availability, avoiding biases in which samples are selected for sequencing.
+However, our estimate using the Sanger dataset (
+𝑅
+𝑡
+=
+1.94
+R 
+t
+​
+ =1.94) is still valuable, as it reflects trends specifically within tested and sequenced cases. This is useful for tracking variant-specific transmission dynamics, even if it may slightly over- or underestimate 
+𝑅
+𝑡
+R 
+t
+​
+ .
+
+Conclusion
+Both estimates suggest rapid early spread of Delta with 
+𝑅
+𝑡
+≈
+1.9
+R 
+t
+​
+ ≈1.9, but the ONS-CIS dataset likely provides a more accurate representation of real-world transmission. Our Sanger-based approach, however, remains valuable for tracking variant-specific transmission patterns.
+
 
 ## **Conclusions**
 
@@ -482,3 +1028,5 @@ ggplot(rt_estimate$R, aes(x = t_end, y = `Mean(R)`, ymin = `Quantile.025(R)`, ym
 - The BA.2 variant trajectory differed between datasets, likely due to sampling strategies.
 - The Delta variant exhibited regional variation in growth rates.
 - The estimated Rt for Delta confirmed its rapid spread.
+
+## **References**

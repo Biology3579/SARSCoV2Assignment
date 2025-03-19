@@ -89,6 +89,67 @@ plot_ba2_frequency_comparison <- function(ba2_cog, ba2_onscis) {
 }
 
 
+# ..
+plot_logistic_growth_curve <- function(growth_results, variant, color) {
+  
+  # Extract growth phase data and fitted model
+  data <- growth_results$growth_data
+  fitted_model <- growth_results$fitted_model
+  growth_rate <- growth_results$growth_rate
+  
+  # Generate smooth sequence of dates
+  smooth_dates <- seq(min(data$collection_date), max(data$collection_date), by = "1 day")
+  
+  # Compute predicted frequencies
+  smooth_predictions <- data.frame(
+    collection_date = smooth_dates,
+    predicted_frequency = logistic_growth(
+      as.numeric(smooth_dates - min(data$collection_date)),
+      coef(fitted_model)["s"], 
+      coef(fitted_model)["f0"]
+    )
+  )
+  
+  # Create the plot
+  ggplot(data, aes(x = collection_date)) +
+    geom_point(aes(y = lineage_frequency), color = "black", size = 2, alpha = 0.7) + # Actual data points
+    geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), 
+              color = color, size = 1) +  # Fitted logistic curve
+    annotate(
+      "text", 
+      x = min(data$collection_date) + 30, 
+      y = 0.8, 
+      label = paste0("s = ", round(growth_rate, 4)), 
+      color = color, 
+      size = 5
+    ) +
+    labs(
+      title = paste("Logistic Growth Fit for", variant),
+      x = "Collection Date",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+}
+
+
+#Function to ...
+plot_delta_frequencies <- function(data) {
+  ggplot(data, aes(x = week, y = delta_frequency, color = phecname)) +  # Change 'date' -> 'week'
+    geom_line(size = 1.2) +
+    geom_point(size = 2, alpha = 0.7) +
+    scale_color_viridis_d() + # High contrast, colorblind-friendly
+    labs(
+      title = "Delta Variant Frequency Over Time (Weekly Smoothed)",
+      x = "Collection Date",
+      y = "Frequency of Delta",
+      color = "Region"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+
+
 # Function to save plots as SVG ----
 save_plot_svg <- function(data, filename, size, scaling, plot_function, ...) {
   size_inches <- size / 2.54  # Convert size from cm to inches
