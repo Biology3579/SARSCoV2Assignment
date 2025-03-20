@@ -114,7 +114,7 @@ source(here("functions", "plotting.R"))
 plot_total_variant_counts(sanger_analysis_data)
 
 ```
-***Figure 1: Weekly counts of major SARS-CoV-2 variants in England over time.***
+_Figure 1: Weekly counts of major SARS-CoV-2 variants in England over time._
 
 ### **1.3.2 Proportional Frequency of Major Lineages**
 This plot shows the relative frequencies of major SARS-CoV-2 variants over time, allowing for a better understanding of how different lineages competed and replaced one another.
@@ -126,7 +126,7 @@ source(here("functions", "plotting.R"))
 # Generate a stacked area plot of lineage proportions over time
 plot_variant_frequencies(sanger_analysis_data)
 ```
-***Figure 2: Proportional representation of major SARS-CoV-2 variants in England over time.***
+_Figure 2: Proportional representation of major SARS-CoV-2 variants in England over time._
 
 ---
 
@@ -198,7 +198,7 @@ ba2_onscis <- onscis_analysis_data %>%
 # Plot ...
 plot_ba2_frequency_comparison(ba2_sanger, ba2_onscis)
 ```
-***Figure 3: Frequency trajectories of BA.2 from the Sanger (weekly) and ONS-CIS (10-day binned) datasets.***
+_Figure 3: Frequency trajectories of BA.2 from the Sanger (weekly) and ONS-CIS (10-day binned) datasets._
 
 ###**2.2 Comparing Trajectories **
 
@@ -225,7 +225,7 @@ source(here("functions", "plotting.R"))
 # Plot ...
 plot_variant_frequency_trajectories(variants = c("B.1.617.2", "BA.1", "BA.2"))
 ```
-***Figure 4: Frequency trajectories of B.1.617.2, BA.1, and BA.2 over time.***
+_Figure 4: Frequency trajectories of B.1.617.2, BA.1, and BA.2 over time._
 
 Then, a function was implemented to automatically extract the growth phase start and end dates for each variant, ensuring a consistent approach across lineages. Details on the selection criteria and methodology can be found in the variant_analyses script.
 
@@ -244,7 +244,7 @@ growth_phases <- bind_rows(
 print(growth_phases)
 
 ```
-***Table 1: Estimated growth phase start and end dates for each variant.***
+_Table 1: Estimated growth phase start and end dates for each variant._
 
 Once the growth phases are identified, the dataset is filtered to include only data within these periods. This ensures that the logistic growth model is fitted to the exponential growth phase, excluding periods of stagnation or decline.
 ```{r}
@@ -305,7 +305,7 @@ plot_logistic_growth_facet(
 )
 ```
 
-***Figure 5: Figure 5: Logistic growth model fits for B.1.617.2, BA.1, and BA.2, with their respective s-values.***
+_Figure 5: Figure 5: Logistic growth model fits for B.1.617.2, BA.1, and BA.2, with their respective s-values._
 
 ### **3.3 Interpretation of Variant Fixation and Selective Advantage**
 
@@ -368,7 +368,7 @@ delta_weekly <- delta_analysis_data %>%
 plot_delta_frequencies(delta_weekly)
 
 ```
-***Figure 6: Weekly frequency trajectories of Delta across English regions.***
+_Figure 6: Weekly frequency trajectories of Delta across English regions._
 
 
 ### ** 4.2.2 Logistic Growth Model by Region **
@@ -400,7 +400,7 @@ plot_logistic_growth_region(
   predicted_data = logistic_predictions_region
 )
 ```
-***Figure 7: Logistic growth model fits for Delta frequency trajectories across regions.***
+_Figure 7: Logistic growth model fits for Delta frequency trajectories across regions._
 
 
 ### ** 4.3 logistic growth for each region **
@@ -476,7 +476,7 @@ plot_estimated_vs_sequenced_delta_cases(
   delta_estimates = daily_delta_estimates, 
   sanger_data = sanger_analysis_data)
 ```
-***Figure 8: Estimated daily Delta cases vs. Delta cases from sequencing data.***
+_Figure 8: Estimated daily Delta cases vs. Delta cases from sequencing data._
 
 ### **5.2 Reflection on Differences Between the Two Estimates**
 
@@ -510,7 +510,7 @@ source(here("functions", "plotting.R"))
 plot_rt_estimates(rt_estimates)
 
 ```
-***Figure 9: Estimated $R_t$ values for Delta transmission.***
+_Figure 9: Estimated $R_t$ values for Delta transmission._
 
 ### **5.4 Comparison of $R_t$ Estimates**
 
