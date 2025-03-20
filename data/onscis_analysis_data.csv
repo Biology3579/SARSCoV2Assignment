@@ -1,4 +1,4 @@
-collection_date_bin,major_lineage,lineage_count,total_count,lineage_frequency
+collection_date,variant,variant_count,total_count,variant_frequency
 2020-04-18,Other,2,2,1
 2020-04-28,Other,10,10,1
 2020-05-08,Other,16,16,1

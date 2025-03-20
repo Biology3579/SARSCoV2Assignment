@@ -24,7 +24,7 @@ renv::restore()
 ```
 
 ```{r packages, warning=FALSE}
-# Source library loading fucntion
+# Source library loading function
 source(here::here("functions", "libraries.R"))
 # Load necessary libraries
 load_libraries()
@@ -42,146 +42,144 @@ This analysis aims to:
 
 ## **Question 1: SARS-CoV-2 Major Lineages and Trends**
 
-This includes
-weekly counts of virus samples per lineage over time across
-England collected as part of Sanger Institute COG-UK
+In this section I will be ...
+The ... dataset includes weekly counts of virus samples per lineage over time across England collected as part of Sanger Institute COG-UK. This is ... 
 
 
-Now, let’s import the Sanger Institute COG-UK
+### **1.1 Load Sanger Data**
 
-### **1.1 Load and Clean Data**
-
-To simplify the long list of lineage names assigned by the Pango nomenclature, we group them into broader ‘major lineages.’ For this practical, we focus on variants that caused significant waves in the UK since late 2020. These include: Alpha (B.1.1.7), Delta (B.1.617.2), and various Omicron sublineages, including BA.1, BA.2, BA.4, BA.5, and XBB. We put variants from other lineage into the 'Other' category.
-
-```{r load-raw-data}
+```{r load-raw-sanger-data}
 # Load ... data
 sanger_raw <- read.csv(here("data", "Genomes_per_week_in_England.csv"))
-head(sanger_raw) #Check ...
 ```
 
+### **1.2 Process Sanger Data**
 
-```{r clean-sanger-data}
+For the analysis there are coupled of thinsg that we need to do to the raw data> this involves .. claissfying into the main lienages and ... 
+For the complete breakdwon of this please refer to the .. file where i outline each processign step in more detail. 
+
+```{r process-sanger-data}
 #Prepare the raw data for analysis
+source(here("functions", "cleaning_and_curating.R")) # Load functions for this ...
 
-# Load functions
-source(here("functions", "cleaning_and_curating.R"))
-
-# Process Sanger data using the function
-sanger_analysis_data <- process_sanger_data(
+# Clean the raw data and make sure that uis ...
+sanger_clean <- clean_sanger_data (
   sanger_raw, 
-  major_lineages = c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB")
+  variants = c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB") # Define major variants
 )
+
+# ...
+sanger_analysis_data <- counts_and_frequencies(sanger_clean)
 
 # Save the cleaned and processed dataset
 write_csv(sanger_analysis_data, here("data", "sanger_analysis_data.csv"))
 ```
 
-### **1.2 Stacked Area Plots**
+### **1.3 Stacked Area Plots**
 
-
-weekly...
+<brief description of what this does>. Resort to the plotting script within the functions for a more detailed description on the plotting ...
 
 ```{r sanger-total-counts-plot}
 source(here("functions", "plotting.R"))
 # Generate the stacked area plots
-plot_total_lineage_counts(sanger_analysis_data)   # Total counts of each lineage over time
+plot_total_variant_counts(sanger_analysis_data)   # Total counts of each variant over time
 
 ```
+***Figure 1: ...***
+
+Now <brief description of the next step>. Resort to the plotting scirpt wihtin the fucntiosn for a more detialed description on the plotting ...
 
 ```{r sanger-frequencies-plot}
 source(here("functions", "plotting.R"))
-plot_lineage_frequencies(sanger_analysis_data)  # Proportions of each lineage over time
+plot_variant_frequencies(sanger_analysis_data)  # Proportions of each variant over time
 
 ```
-
+***Figure 2: ...***
+brief description
 
 ---
 
-## **Question 2: BA.2 Frequency Trajectory**
+## **Question 2: BA.2 variant Trajectory**
 
+In this section I will be ...
+The Onscis dataset .... This is ... 
+
+### **2.1 BA.2 Trajectories across Sanger and ONS-CIS datasets**
+
+load data from ...
 ```{r load-raw-data}
 # Import ONS-CIS daily genomic sequence data
-onscis_raw <- read_csv("https://raw.githubusercontent.com/mg878/variant_fitness_practical/main/lineage_data.csv", 
-                       show_col_types = FALSE) #to suppress the read_csv() message
+onscis_raw <- read_csv("https://raw.githubusercontent.com/mg878/variant_fitness_practical/main/lineage_data.csv", show_col_types = FALSE) #to suppress the read_csv() message
+
 # Save the dataset
 write_csv(onscis_raw, here("data", "onscis_raw.csv"))
-
-# Check the first few rows
-head(onscis_raw)
 ```
 
+prepare ...
+
 ```{r clean-onscis-data}
-# ------------------------------------------
-# Load and Process ONS-CIS Data
-# ------------------------------------------
 
 # Load functions
 source(here("functions", "cleaning_and_curating.R"))
 
-# Process ONS-CIS data using the function (with 10-day binning)
-onscis_analysis_data <- process_onscis_data(onscis_raw, bin_size = 10)
+# Clean the raw ONS-CIS data
+onscis_clean <- clean_onscis_data(onscis_raw)
+
+# Bin data and calculate frequencies
+onscis_analysis_data <- bin_and_calculate_frequencies(onscis_clean, bin_size = 10)
+
 
 # Save the cleaned and processed dataset
 write_csv(onscis_analysis_data, here("data", "onscis_analysis_data.csv"))
 
 ```
 
-## plot 
-```{r ba2-frequency-trajectory}
+plots
 
-# Extract BA.2 data from COG-UK dataset
-ba2_cog <- sanger_analysis_data %>%
-  filter(major_lineage == "BA.2") %>%
-  mutate(source = "COG-UK (Weekly)")
+```{r ba2-frequency-trajectory}
+source(here("functions", "plotting.R"))
+
+# Extract BA.2 data from Sanger dataset
+ba2_sanger <- sanger_analysis_data %>%
+  filter(variant == "BA.2") %>%
+  mutate(source = "Sanger (Weekly)")
 
 # Extract BA.2 data from ONS-CIS dataset
 ba2_onscis <- onscis_analysis_data %>%
-  filter(major_lineage == "BA.2") %>%
+  filter(variant == "BA.2") %>%
   mutate(source = "ONS-CIS (10-day Binned)")
 
 # Plot 
-source(here("functions", "plotting.R"))
-plot_ba2_frequency_comparison(ba2_cog, ba2_onscis)
+plot_ba2_frequency_comparison(ba2_sanger, ba2_onscis)
 ```
+***Figure 3: ...***
 
-# comment 
+###**Comparison of trajectories **
 Analysis: compare the two trajectories. Is there a difference in the timing of BA.2’s rise and when it reaches fixation? Reflect on potential reasons for these differences
 (sampling strategies and geographical or temporal biases in data collection)?
 
-
-
 ---
 
-## **Question 3: Variant Fixation Analysis**
-Question 3
-Using the Sanger dataset, determine which variant—B.1.617.2, BA.1, or BA.2—reached
-fixation the fastest and exhibited the highest selective advantage under a logistic growth model. 
-Use weekly counts to measure the selective advantage (𝑠).
+## **Question 3: variant Fixation Analysis**
 
-Discussion...
+In this section I will be ...
 
+  Using the Sanger dataset, determine which variant—B.1.617.2, BA.1, or BA.2—reached
+  fixation the fastest and exhibited the highest selective advantage under a logistic growth model. 
+  Use weekly counts to measure the selective advantage (𝑠).
+
+### **3.1 Selecting variant growth phases for logistic growth modelling**
+
+first a glimpse at the ...
 ```{r estimate-delta-growth-part1, echo=TRUE, message=FALSE, warning=FALSE}
-# Filter the Sanger dataset for the three variants
-sanger_selected_variants <- sanger_analysis_data %>%
-  filter(major_lineage %in% c("B.1.617.2", "BA.1", "BA.2"))
+source(here("functions", "plotting.R"))
+plot_variant_frequency_trajectories(variants = c("B.1.617.2", "BA.1", "BA.2"))
 
-# Plot frequency trajectories for the selected variants
-ggplot(sanger_selected_variants, aes(x = collection_date, y = lineage_frequency, color = major_lineage)) +
-  geom_line(linewidth = 1.2) +  # Line for trends
-  geom_point(size = 2, alpha = 0.7) +  # Points for visibility
-  scale_color_manual(values = c("B.1.617.2" = "#E69F00",   # Orange
-                                "BA.1" = "#009E73",        # Green
-                                "BA.2" = "#D55E00")) +     # Red
-  labs(
-    title = "Frequency Trajectories of B.1.617.2, BA.1, and BA.2",
-    x = "Collection Date",
-    y = "Frequency",
-    color = "Variant"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+***Figure 4: ...***
 
-
+I made a fucntion to selct the dates - for more information on how this was done please check the ... sheet 
+```{r}
 # Extract growth phase dates for each variant
 growth_phases <- bind_rows(
   extract_growth_phase_dates(sanger_analysis_data, "B.1.617.2"),
@@ -192,239 +190,80 @@ growth_phases <- bind_rows(
 print(growth_phases)
 
 ```
+***Table 1: ...***
+...
+
+```{r}
+
+# Filter sanger_analysis_data for selected variants and their growth phases
+selected_variant_data <- sanger_analysis_data %>%
+  inner_join(growth_phases, by = "variant") %>%
+  filter(collection_date >= start_date & collection_date <= end_date)
 
 
-```{r, warning=FALSE}
-B16172_growth_phase <- sanger_analysis_data %>%
-  filter(
-    major_lineage == "B.1.617.2",  # Select Delta variant
-    collection_date >= as.Date("2021-04-03") & collection_date <= as.Date("2021-06-19")  # Growth phase interval
-  )
-# Define Logistic Growth Function (Ensure this is run first)
+# Define Logistic Growth Function
 logistic_growth <- function(t, s, f0) {
   1 / (1 + ((1 - f0) / f0) * exp(-s * t))
 }
 
-
-# Fit the logistic model using nls
-nls_fit <- nls( # this is ...
-  lineage_frequency ~ logistic_growth(as.numeric(collection_date - min(collection_date)), s, f0),
-  data = B16172_growth_phase,
-  start = list(s = 0.1, f0 = min(B16172_growth_phase$lineage_frequency))  # Initial guesses to make it easier for r to find
-  #value = first non-zero value of strain
-)
-
-# Extract fitted growth rate
-growth_rate <- coef(nls_fit)["s"]
-
-# Generate a smooth sequence of dates for plotting the logistic curve
-smooth_dates <- seq(min(B16172_growth_phase$collection_date),
-                    max(B16172_growth_phase$collection_date), by = "1 day")
-
-# Calculate predicted frequencies for smooth (continuous) dates 
-smooth_predictions <- data.frame(
-  collection_date = smooth_dates,
-  predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(B16172_growth_phase$collection_date)),
-                                         coef(nls_fit)["s"], coef(nls_fit)["f0"])
-)
-
-# Visualise the actual data points and the smooth logistic fit
-ggplot(B16172_growth_phase, aes(x = collection_date)) +
-  geom_point(aes(y = lineage_frequency), color = "black", size = 2, alpha = 0.7) +
-  geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), color = "orange", size = 1) +
-  annotate(
-    "text", 
-    x = as.Date("2021-05-15"), 
-    y = 0.8, 
-    label = paste0("s= ", round(growth_rate, 4)), 
-    color = "orange", 
-    size = 5
-  ) +
-  labs(
-    title = "Logistic growth fit for Delta variant frequency",
-    x = "Collection date",
-    y = "Frequency"
-  ) +
-  theme_minimal()
-```
-```{r, warning=FALSE}
-# Subset data to only include the increasing trajectory for BA.1
-BA1_growth_phase <- sanger_analysis_data %>%
-  filter(major_lineage == "BA.1", 
-         collection_date >= as.Date("2021-10-23") & collection_date <= as.Date("2022-01-08"))
-
-# Define Logistic Growth Function (Ensure this is run first)
-logistic_growth <- function(t, s, f0) {
-  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
-}
-
-# Fit the logistic model using nls
-nls_fit <- nls( 
-  lineage_frequency ~ logistic_growth(as.numeric(collection_date - min(collection_date)), s, f0),
-  data = BA1_growth_phase,
-  start = list(s = 0.1, f0 = min(BA1_growth_phase$lineage_frequency[BA1_growth_phase$lineage_frequency > 0])) # Avoid zero for f0
-)
-
-# Extract fitted growth rate
-growth_rate <- coef(nls_fit)["s"]
-
-# Generate a smooth sequence of dates for plotting the logistic curve
-smooth_dates <- seq(min(BA1_growth_phase$collection_date),
-                    max(BA1_growth_phase$collection_date), by = "1 day")
-
-# Calculate predicted frequencies for smooth (continuous) dates 
-smooth_predictions <- data.frame(
-  collection_date = smooth_dates,
-  predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(BA1_growth_phase$collection_date)),
-                                         coef(nls_fit)["s"], coef(nls_fit)["f0"])
-)
-
-# Visualise the actual data points and the smooth logistic fit
-ggplot(BA1_growth_phase, aes(x = collection_date)) +
-  geom_point(aes(y = lineage_frequency), color = "black", size = 2, alpha = 0.7) +
-  geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), color = "red", size = 1) +
-  annotate(
-    "text", 
-    x = as.Date("2021-12-15"), 
-    y = 0.8, 
-    label = paste0("s= ", round(growth_rate, 4)), 
-    color = "red", 
-    size = 5
-  ) +
-  labs(
-    title = "Logistic growth fit for BA.1 variant frequency",
-    x = "Collection date",
-    y = "Frequency"
-  ) +
-  theme_minimal()
-
-```
-
-	
-```{r, warning=FALSE}
-# Subset data to only include the increasing trajectory for BA.1
-BA2_growth_phase <- sanger_analysis_data %>%
-  filter(major_lineage == "BA.2", 
-         collection_date >= as.Date("2021-12-11") & collection_date <= as.Date("2022-04-16"))
-
-# Define Logistic Growth Function (Ensure this is run first)
-logistic_growth <- function(t, s, f0) {
-  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
-}
-
-# Fit the logistic model using nls
-nls_fit <- nls( 
-  lineage_frequency ~ logistic_growth(as.numeric(collection_date - min(collection_date)), s, f0),
-  data = BA2_growth_phase,
-  start = list(s = 0.1, f0 = min(BA2_growth_phase$lineage_frequency[BA2_growth_phase$lineage_frequency > 0])) # Avoid zero for f0
-)
-
-# Extract fitted growth rate
-growth_rate <- coef(nls_fit)["s"]
-
-# Generate a smooth sequence of dates for plotting the logistic curve
-smooth_dates <- seq(min(BA2_growth_phase$collection_date),
-                    max(BA2_growth_phase$collection_date), by = "1 day")
-
-# Calculate predicted frequencies for smooth (continuous) dates 
-smooth_predictions <- data.frame(
-  collection_date = smooth_dates,
-  predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(BA2_growth_phase$collection_date)),
-                                         coef(nls_fit)["s"], coef(nls_fit)["f0"])
-)
-
-# Visualise the actual data points and the smooth logistic fit
-ggplot(BA2_growth_phase, aes(x = collection_date)) +
-  geom_point(aes(y = lineage_frequency), color = "black", size = 2, alpha = 0.7) +
-  geom_line(data = smooth_predictions, aes(x = collection_date, y = predicted_frequency), color = "red", size = 1) +
-  annotate(
-    "text", 
-    x = as.Date("2021-12-01"), 
-    y = 0.8, 
-    label = paste0("s= ", round(growth_rate, 4)), 
-    color = "red", 
-    size = 5
-  ) +
-  labs(
-    title = "Logistic growth fit for BA.2 variant frequency",
-    x = "Collection date",
-    y = "Frequency"
-  ) +
-  theme_minimal()
-
-```
-
-B.1.617.2	2021-04-03	2021-06-19		
-BA.1	2021-10-30	2022-01-08		
-BA.2	2022-01-01	2022-04-16	
-
-
-```{r logistic-growth}
-# Logistic growth model
-logistic_growth <- function(t, s, f0) {
-  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
-}
-
-# Fit logistic growth model for each variant using inline date definitions
-growth_rates <- bind_rows(
-  fit_variant_growth(sanger_analysis_data, "B.1.617.2", start_date = as.Date("2021-04-03"), end_date = as.Date("2021-06-19")),
-  fit_variant_growth(sanger_analysis_data, "BA.1", start_date = as.Date("2021-10-30"), end_date = as.Date("2022-01-08")),
-  fit_variant_growth(sanger_analysis_data, "BA.2", start_date = as.Date("2022-01-01"), end_date = as.Date("2022-04-16"))
-)
-print(growth_rates)
-
-# Define known growth intervals
-growth_intervals <- tibble(
-  variant = c("B.1.617.2", "BA.1", "BA.2"),
-  start_date = as.Date(c("2021-04-23", "2021-11-05", "2022-02-15")),
-  end_date = as.Date(c("2021-07-12", "2022-01-30", "2022-04-25")),
-  color = c("#E69F00", "#009E73", "#D55E00")  # Color for each variant
-)
-
-# Fit logistic models for all variants
-growth_results_list <- growth_intervals %>%
-  rowwise() %>%
-  mutate(growth_results = list(fit_variant_growth(sanger_major_lineage_trends, variant, start_date, end_date)))
-
-# Generate plots
-growth_plots <- pmap(list(
-  growth_results_list$growth_results,
-  growth_intervals$variant,
-  growth_intervals$color
-), plot_logistic_growth_curve)
-
-# Arrange plots side by side
-ggarrange(plotlist = growth_plots, ncol = 3, nrow = 1)
-```
-Fix...
----
-
-## **Question 4: Regional Analysis of Delta Variant**
-
-```{r load-raw-data}
-# Load RDS data
-delta_raw <- readRDS(here("data", "delta-d2.rds"))
-
-# Check the structure of the loaded data
-head(delta_raw)
+# Extarct ...
+logistic_predictions_variant <- selected_variant_data %>%
+  group_by(variant) %>%
+  group_split() %>%
+  map_dfr(~fit_logistic_growth_general(.x, 
+                                       time_col = "collection_date", 
+                                       frequency_col = "variant_frequency", 
+                                       group_col = "variant"))
 
 ```
 
 ```{r}
-# ------------------------------------------
-# Load and Process ONS-CIS Data
-# ------------------------------------------
+
+
+plot_logistic_growth_facet(
+  data = selected_variant_data, 
+  growth_phases = growth_phases, 
+  variants = unique(selected_variant_data$variant)
+)
+
+```
+
+***Figure 5: ...***
+comment .. 
+
+
+
+## **Question 4: Regional Analysis of Delta Variant**
+
+
+### ** 4.1 Load and process regional delta data **
+
+
+```{r load-raw-data}
+# Load RDS data
+regional_delta_raw <- readRDS(here("data", "delta-d2.rds"))
+
+```
+
+```{r}
 
 # Load functions
 source(here("functions", "cleaning_and_curating.R"))
 
-# Process ONS-CIS data using the function (with 10-day binning)
-delta_analysis_data <- process_delta_data(delta_raw)
+# Clean the raw ONS-CIS data
+regional_delta_clean <- clean_delta_data(regional_delta_raw)
+
+# calculate frequencies
+delta_analysis_data <- counts_and_frequencies_delta(regional_delta_clean)
+
 
 # Save the cleaned and processed dataset
 write_csv(delta_analysis_data, here("data", "delta_analysis_data.csv"))
 
 ```
+
+
+### ** 4.2.1 Delta frequencies by region **
 
 
 ```{r delta-region-analysis}
@@ -444,174 +283,39 @@ source(here("functions", "plotting.R"))
 plot_delta_frequencies(delta_weekly)
 
 ```
+***Figure 6: ...***
+comment .. 
+
+### ** 4.2.2 logistic growth for each region **
+
+logistic growth for each region
+
 ```{r}
-# Define Logistic Growth Function
-logistic_growth <- function(t, s, f0) {
-  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
-}
-
-# Function to fit logistic growth model and return predictions
-fit_logistic_growth <- function(region_data) {
-  # Ensure data is sorted by week
-  region_data <- region_data %>% arrange(week)
-  
-  # Define time since first observation
-  region_data <- region_data %>%
-    mutate(time = as.numeric(week - min(week)))
-
-  # Fit logistic model using nls()
-  nls_fit <- tryCatch(
-    nls(
-      delta_frequency ~ logistic_growth(time, s, f0),
-      data = region_data,
-      start = list(s = 0.1, f0 = min(region_data$delta_frequency[region_data$delta_frequency > 0])),
-      control = nls.control(maxiter = 100)
-    ),
-    error = function(e) return(NULL) # If fitting fails, return NULL
-  )
-  
-  if (is.null(nls_fit)) return(NULL)  # Skip regions where model fails
-
-  # Extract growth rate (s) and initial frequency (f0)
-  coef_values <- coef(nls_fit)
-  growth_rate <- coef_values["s"]
-  f0 <- coef_values["f0"]
-
-  # Generate smooth logistic predictions
-  smooth_dates <- seq(min(region_data$week), max(region_data$week), by = "1 day")
-  smooth_predictions <- data.frame(
-    week = smooth_dates,
-    predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(region_data$week)), growth_rate, f0),
-    phecname = unique(region_data$phecname)
-  )
-
-  return(smooth_predictions)
-}
-
-
-# Apply logistic fitting function to each region
-logistic_predictions <- delta_weekly %>%
+logistic_predictions_region <- delta_weekly %>%
   group_by(phecname) %>%
   group_split() %>%
-  map_dfr(fit_logistic_growth)
+  map_dfr(~fit_logistic_growth_general(.x, time_col = "week", 
+                                       frequency_col = "delta_frequency", 
+                                       group_col = "phecname"))
 
 ```
 
 ```{r}
-# Load required libraries
-library(ggplot2)
-
-# Plot observed data and fitted logistic curves
-ggplot(delta_weekly, aes(x = week, y = delta_frequency, color = phecname)) +
-  geom_point(size = 1.8, alpha = 0.7) +  # Observed frequencies
-  geom_line(data = logistic_predictions, aes(x = week, y = predicted_frequency, group = phecname, color = phecname),
-             size = 1) +  # Logistic growth curves
-  scale_color_viridis_d() +  # Colorblind-friendly palette
-  labs(
-    title = "Logistic Growth Fit for Delta Variant Frequency by Region",
-    x = "Collection Date (Week)",
-    y = "Frequency of Delta",
-    color = "Region"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~phecname)  # Facet by region
+plot_logistic_growth_region(
+  observed_data = delta_weekly, 
+  predicted_data = logistic_predictions_region
+)
 
 ```
-```{r}
-# Load required libraries
-library(tidyverse)
-library(ggplot2)
-library(purrr)
-library(knitr)  # For displaying tables in RMarkdown
 
-# ------------------------------------------
-# Define Logistic Growth Function
-# ------------------------------------------
-logistic_growth <- function(t, s, f0) {
-  1 / (1 + ((1 - f0) / f0) * exp(-s * t))
-}
+### ** 4.3 logistic growth for each region **
 
-# ------------------------------------------
-# Fit Logistic Growth Model for Each Region
-# ------------------------------------------
-fit_logistic_growth <- function(region_data) {
-  # Ensure data is sorted by week
-  region_data <- region_data %>% arrange(week)
-  
-  # Define time since first observation
-  region_data <- region_data %>%
-    mutate(time = as.numeric(week - min(week)))
-
-  # Fit logistic model using nls()
-  nls_fit <- tryCatch(
-    nls(
-      delta_frequency ~ logistic_growth(time, s, f0),
-      data = region_data,
-      start = list(s = 0.1, f0 = min(region_data$delta_frequency[region_data$delta_frequency > 0])),
-      control = nls.control(maxiter = 100)
-    ),
-    error = function(e) return(NULL) # If fitting fails, return NULL
-  )
-  
-  if (is.null(nls_fit)) return(NULL)  # Skip regions where model fails
-
-  # Extract growth rate (s) and initial frequency (f0)
-  coef_values <- coef(nls_fit)
-  growth_rate <- coef_values["s"]
-  f0 <- coef_values["f0"]
-
-  # Generate smooth logistic predictions
-  smooth_dates <- seq(min(region_data$week), max(region_data$week), by = "1 day")
-  smooth_predictions <- data.frame(
-    week = smooth_dates,
-    predicted_frequency = logistic_growth(as.numeric(smooth_dates - min(region_data$week)), growth_rate, f0),
-    phecname = unique(region_data$phecname)
-  )
-
-  # Return both logistic predictions and coefficients
-  return(list(predictions = smooth_predictions, estimates = tibble(phecname = unique(region_data$phecname), s = growth_rate, f0 = f0)))
-}
-
-# ------------------------------------------
-# Apply Logistic Growth Model to Each Region
-# ------------------------------------------
-logistic_results <- delta_weekly %>%
-  group_by(phecname) %>%
-  group_split() %>%
-  map(fit_logistic_growth)
-
-# Extract logistic predictions for visualization
-logistic_predictions <- map_dfr(logistic_results, "predictions")
-
-# Extract growth rate (s) and initial frequency (f0) for summary table
-growth_estimates <- map_dfr(logistic_results, "estimates")
-
-# ------------------------------------------
-# Plot Observed Data and Fitted Logistic Curves
-# ------------------------------------------
-ggplot(delta_weekly, aes(x = week, y = delta_frequency, color = phecname)) +
-  geom_point(size = 1.8, alpha = 0.7) +  # Observed frequencies
-  geom_line(data = logistic_predictions, aes(x = week, y = predicted_frequency, group = phecname, color = phecname),
-             size = 1) +  # Logistic growth curves
-  scale_color_viridis_d() +  # Colorblind-friendly palette
-  labs(
-    title = "Logistic Growth Fit for Delta Variant Frequency by Region",
-    x = "Collection Date (Week)",
-    y = "Frequency of Delta",
-    color = "Region"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~phecname)  # Facet by region
-
-# ------------------------------------------
-# Display Growth Estimates (s and f0) for Each Region
-# ------------------------------------------
-# Print the table in a nicely formatted way
-kable(growth_estimates, format = "markdown", col.names = c("Region", "Growth Rate (s)", "Initial Frequency (f0)"))
-
-```
+i) Identify the region with the fastest Delta outbreak; based on your
+analysis, determine which region had the most rapidly growing outbreak of Delta (highest
+𝑠). Identify the region where Delta had the earliest rise in frequencies (highest 𝑓0).
+Discuss why the timing of Delta’s emergence differed between regions. (ii) Could Delta’s
+growth across regions be associated with a founder effect? Explain what a founder
+effect is and evaluate whether the observed data supports or refutes this hypothesis:
 
 Interpretation of Delta Variant Growth Analysis
 i) Identifying the Region with the Fastest Delta Outbreak
@@ -665,7 +369,6 @@ Sociodemographic factors
 Founder effect likely played a role in some regions but does not fully explain Delta’s nationwide spread.
 This analysis highlights the complexity of viral spread, where both stochastic introduction events and structured population dynamics shape epidemic trajectories.
 
-
 ---
 
 ## **Question 5: Delta Incidence and Rt Estimation**
@@ -693,43 +396,29 @@ In conclusion, while sequencing provides valuable insights into variant proporti
 
 ```{r load-raw-data}
 # Load ... data
-daily_case_raw <- read.csv(here("data", "daily-new-confirmed-covid-19-cases.csv"))
-head(daily_case_raw) #Check ...
-```
+delta_daily_raw <- read.csv(here("data", "daily-new-confirmed-covid-19-cases.csv"))
 
-```{r}
-
-# Function to process COVID-19 case data
-process_case_data <- function(raw_data) {
-  raw_data %>%
+# clean
+delta_daily_clean  <- delta_daily_raw %>%
     mutate(
       date = as.Date(date),  # Convert date column to Date format
       cases_sevendayaveraged = as.numeric(cases_sevendayaveraged)  # Ensure numerical format
     )
-}
-
-# Apply function to dataset
-daily_case_analysis_data <- process_case_data(daily_case_raw)
-
-# View first few rows
-head(daily_case_analysis_data)
 ```
+
 
 ```{r}
 # Filter the Sanger dataset to only include Delta (B.1.617.2) sequences
-sanger_delta <- sanger_analysis_data %>%
-  filter(major_lineage == "B.1.617.2") %>%  # Focus on Delta cases
+sanger_delta_data <- sanger_analysis_data %>%
+  filter(variant == "B.1.617.2") %>%  # Focus on Delta cases
   rename(week = collection_date)  # Rename for clarity (since this is weekly data)
-
-# View the first few rows to confirm structure
-head(sanger_delta)
 
 ```
 
 Because wekkly dtaa starts a lot later than the daily data, i will discard the frist few moths and start from the the first week reporterd in the snager dataset - 2020-09-05 (which is a monday)
 
 ```{r}
-delta_daily_filtered <- delta_daily_raw %>%
+delta_daily_filtered <- delta_daily_clean %>%
   filter(date >= as.Date("2020-09-05"))  # Remove earlier dates
 
 ```
@@ -740,10 +429,8 @@ then i multiply
 ```{r}
 # Merge with Sanger dataset to get weekly Delta proportions
 daily_cases_with_delta <- delta_daily_filtered %>%
-  left_join(sanger_delta, by = "week")  # Assign each daily case count to its corresponding weekly Delta proportion
+  left_join(sanger_delta_data, by = "week")  # Assign each daily case count to its corresponding weekly Delta proportion
 
-# View the first few rows to check
-head(daily_cases_with_delta)
 ```
 ```{r}
 # Ensure both datasets are correctly formatted
@@ -752,8 +439,8 @@ delta_daily_filtered <- delta_daily_raw %>%
   mutate(date = as.Date(date))  # Ensure date format
 
 sanger_delta <- sanger_analysis_data %>%
-  filter(major_lineage == "B.1.617.2") %>%  # Keep only Delta lineage
-  select(collection_date, lineage_frequency) %>%  # Keep relevant columns
+  filter(variant == "B.1.617.2") %>%  # Keep only Delta variant
+  select(collection_date, variant_frequency) %>%  # Keep relevant columns
   rename(week = collection_date)  # Rename collection_date to week for clarity
 
 # Assign each daily case count to the closest previous weekly proportion
@@ -766,9 +453,6 @@ daily_cases_with_delta <- delta_daily_filtered %>%
 # Convert week back to Date format
 daily_cases_with_delta$week <- as.Date(daily_cases_with_delta$week)
 
-# View first few rows
-head(daily_cases_with_delta)
-
 ```
 
 now calcualte ..
@@ -776,7 +460,7 @@ then i will gather the data in this dataset -> ... round so it makes more sense
 ```{r}
 # Compute estimated Delta cases
 daily_cases_with_delta <- daily_cases_with_delta %>%
-  mutate(estimated_delta_cases = round(cases_sevendayaveraged * lineage_frequency)) # rpound so its a decimal!!
+  mutate(estimated_delta_cases = round(cases_sevendayaveraged * variant_frequency)) # rpound so its a decimal!!
 
 ```
 
@@ -794,9 +478,9 @@ plot_data <- daily_cases_with_delta %>%
 
 # Prepare Sanger weekly sequence counts for plotting
 sanger_weekly <- sanger_analysis_data %>%
-  filter(major_lineage == "B.1.617.2") %>%  # Select Delta variant
-  select(collection_date, lineage_count) %>%
-  rename(value = lineage_count, date = collection_date) %>%
+  filter(variant == "B.1.617.2") %>%  # Select Delta variant
+  select(collection_date, variant_count) %>%
+  rename(value = variant_count, date = collection_date) %>%
   mutate(source = "Sanger Weekly Delta Sequences")
 
 # Combine both datasets
