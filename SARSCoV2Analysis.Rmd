@@ -17,7 +17,6 @@ knitr::opts_chunk$set(
   message = FALSE    # Suppress messages
 )
 ```
-
 ```{r renv-restore}
 # Restoring project's environment 
 renv::restore()
@@ -26,7 +25,7 @@ renv::restore()
 ```{r packages, warning=FALSE}
 # Source library loading function
 source(here::here("functions", "libraries.R"))
-# Load necessary libraries
+# Load necessary libraries for analysis
 load_libraries()
 ```
 ## Introduction
@@ -42,101 +41,148 @@ This analysis aims to:
 
 ## **Question 1: SARS-CoV-2 Major Lineages and Trends**
 
-In this section I will be ...
-The ... dataset includes weekly counts of virus samples per lineage over time across England collected as part of Sanger Institute COG-UK. This is ... 
+This section analyses the major SARS-CoV-2 lineages circulating in England over time using data from the Sanger Institute's COG-UK programme. The dataset contains weekly counts of virus samples per lineage, providing insight into the evolution and spread of different variants.
 
+The analysis consists of the following steps:
+1. **Loading the dataset** – Importing the raw data from an online repository.
+2. **Classifying major lineages** – Identifying key variants and grouping all others under a general category.
+3. **Visualising lineage trends** – Generating stacked area plots to illustrate changes in lineage prevalence over time.
+
+---
 
 ### **1.1 Load Sanger Data**
 
+The dataset is imported from a GitHub repository. The file `Genomes_per_week_in_England.csv` contains weekly counts of SARS-CoV-2 genomic sequences assigned to specific lineages.
+
 ```{r load-raw-sanger-data}
-# Load ... data
-sanger_raw <- read.csv(here("data", "Genomes_per_week_in_England.csv"))
+# Load the raw dataset from an online repository (ensures reproducibility)
+sanger_raw <- read.csv("https://raw.githubusercontent.com/Biology3579/SARSCoV2Assignment/main/data/Genomes_per_week_in_England.csv")
+
+# Save a local copy of the dataset for future reference
+write_csv(sanger_raw, here("data", "sanger_raw.csv"))
 ```
 
 ### **1.2 Process Sanger Data**
 
-For the analysis there are coupled of thinsg that we need to do to the raw data> this involves .. claissfying into the main lienages and ... 
-For the complete breakdwon of this please refer to the .. file where i outline each processign step in more detail. 
+Before conducting the analysis, the raw data must be processed to ensure that it is structured appropriately for statistical analysis and meaningful interpretation.
+The key processing steps include:
+
+- Identification and classification of major SARS-CoV-2 lineages: 
+Variants of concern and interest exhibit different transmission rates, immune evasion capabilities, and epidemiological impact. Classifying major lineages enables a clearer understanding of their relative dominance and replacement dynamics over time. This classification focuses on key variants such as Alpha (B.1.1.7), Delta (B.1.617.2), Omicron subvariants (BA.1, BA.2, BA.2.75, BA.4, BA.5, BA.5.3/BQ.1), and XBB, which have played significant roles in shaping the pandemic. By isolating these lineages, their individual growth trends and competitive advantages can be assessed.
+
+All other other lineages - low-prevalence lineages with a much less significant epidemiological impact - are grouped as 'Other'. This approach helps avoid statistical noise and enhances the clarity of lineage trends.
+
+- Formatting the dataset for further statistical analysis and visualisation: 
+The raw dataset requires restructuring to facilitate robust statistical modeling and visualisation. 
+
+A more detailed breakdown of these processing steps is provided in the cleaning_and_curating.R script, from which the processing functions are sourced.
 
 ```{r process-sanger-data}
-#Prepare the raw data for analysis
-source(here("functions", "cleaning_and_curating.R")) # Load functions for this ...
+# Source the data processing functions
+source(here("functions", "cleaning_and_curating.R"))
 
-# Clean the raw data and make sure that uis ...
-sanger_clean <- clean_sanger_data (
-  sanger_raw, 
-  variants = c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB") # Define major variants
-)
+# Pipe to process data concisely
+sanger_analysis_data <- sanger_raw %>%
+  clean_sanger_data(variants = c("B.1.1.7", "B.1.617.2", "BA.1", "BA.2", "BA.2.75", "BA.4", "BA.5", "BA.5.3", "XBB")) %>% # Classify major variants
+  counts_and_frequencies() # Compute total counts and frequencies
 
-# ...
-sanger_analysis_data <- counts_and_frequencies(sanger_clean)
-
-# Save the cleaned and processed dataset
+# Save the processed dataset for further analysis
 write_csv(sanger_analysis_data, here("data", "sanger_analysis_data.csv"))
+
 ```
+
+
 
 ### **1.3 Stacked Area Plots**
 
-<brief description of what this does>. Resort to the plotting script within the functions for a more detailed description on the plotting ...
+To visualise the temporal trends of SARS-CoV-2 lineages, stacked area plots are generated. These plots provide a clear representation of:
+
+- Total lineage counts over time – The absolute number of samples belonging to each lineage in a given week.
+- Relative lineage frequencies over time – The proportion of each lineage among the total sequenced genomes in a given week.
+All visualisation functions are sourced from the plotting.R script.
+
+
+
+#### **1.3.1 Total Counts of Major Lineages**
+This plot illustrates the absolute number of samples assigned to each major lineage over time. It provides insight into which variants were most prevalent at different points in the pandemic.
 
 ```{r sanger-total-counts-plot}
+# Load the plotting function
 source(here("functions", "plotting.R"))
-# Generate the stacked area plots
-plot_total_variant_counts(sanger_analysis_data)   # Total counts of each variant over time
+
+# Generate a stacked area plot of total lineage counts over time
+plot_total_variant_counts(sanger_analysis_data)
 
 ```
-***Figure 1: ...***
+***Figure 1: Weekly counts of major SARS-CoV-2 variants in England over time.***
 
-Now <brief description of the next step>. Resort to the plotting scirpt wihtin the fucntiosn for a more detialed description on the plotting ...
+### **1.3.2 Proportional Frequency of Major Lineages**
+This plot shows the relative frequencies of major SARS-CoV-2 variants over time, allowing for a better understanding of how different lineages competed and replaced one another.
 
 ```{r sanger-frequencies-plot}
+# Load the plotting function
 source(here("functions", "plotting.R"))
-plot_variant_frequencies(sanger_analysis_data)  # Proportions of each variant over time
 
+# Generate a stacked area plot of lineage proportions over time
+plot_variant_frequencies(sanger_analysis_data)
 ```
-***Figure 2: ...***
-brief description
+***Figure 2: Proportional representation of major SARS-CoV-2 variants in England over time.***
 
 ---
 
-## **Question 2: BA.2 variant Trajectory**
+## **Question 2: BA.2 Variant Trajectory**
 
-In this section I will be ...
-The Onscis dataset .... This is ... 
+This section examines the frequency trajectory of the SARS-CoV-2 BA.2 variant using data from two different genomic surveillance sources: the **Sanger Institute's COG-UK dataset** and the **ONS-CIS dataset**. By comparing the trends observed in these datasets, differences in BA.2's emergence, growth, and fixation can be evaluated....
 
-### **2.1 BA.2 Trajectories across Sanger and ONS-CIS datasets**
+The analysis consists of:
+1. **Loading and processing the data** – Importing raw sequencing data from the ONS-CIS and preparing it for analysis.
+2. **Visualising BA.2 frequency trajectories** – Comparing weekly counts from the Sanger dataset against 10-day bin counts from ONS-CIS.
+3. **Analysing trajectory differences** – Assessing the discrepancies in BA.2’s rise and fixation timing between the two datasets.
 
-load data from ...
+---
+
+### **2.1 BA.2 Trajectories Across Sanger and ONS-CIS Datasets**
+
+To investigate BA.2’s frequency dynamics, genomic sequence data from ONS-CIS is loaded and then processed to facilitate its usage.
+
+#### ** 2.1.1 Loading Raw Data**
+The **ONS-CIS dataset** provides daily genomic sequence data ...
+
+The dataset is imported from a GitHub repository to ensure ... The file `lineage_data.csv` contains daily counts of SARS-CoV-2 genomic sequences assigned to specific lineages.
+
 ```{r load-raw-data}
 # Import ONS-CIS daily genomic sequence data
-onscis_raw <- read_csv("https://raw.githubusercontent.com/mg878/variant_fitness_practical/main/lineage_data.csv", show_col_types = FALSE) #to suppress the read_csv() message
+onscis_raw <- read_csv("https://raw.githubusercontent.com/mg878/variant_fitness_practical/main/lineage_data.csv", show_col_types = FALSE) 
 
-# Save the dataset
+# Save the dataset locally for reproducibility
 write_csv(onscis_raw, here("data", "onscis_raw.csv"))
+
 ```
 
-prepare ...
+#### ** 2.1.2 Processing and Cleaning ONS-CIS Data**
+Before visualisation, the ONS-CIS dataset is processed to standardise lineage classification, bin the data into 10-day intervals and compute lineage frequencies within each of these 10-day bins.
 
 ```{r clean-onscis-data}
-
-# Load functions
+# Load data cleaning functions
 source(here("functions", "cleaning_and_curating.R"))
 
-# Clean the raw ONS-CIS data
-onscis_clean <- clean_onscis_data(onscis_raw)
-
-# Bin data and calculate frequencies
-onscis_analysis_data <- bin_and_calculate_frequencies(onscis_clean, bin_size = 10)
-
+# Pipe to process data concisely
+onscis_analysis_data <- onscis_raw %>%
+  clean_onscis_data() %>%   # Clean the raw ONS-CIS data
+  bin_and_calculate_frequencies(bin_size = 10)  # Bin data into 10-day intervals and calculate frequencies
 
 # Save the cleaned and processed dataset
 write_csv(onscis_analysis_data, here("data", "onscis_analysis_data.csv"))
 
 ```
 
-plots
+
+#### ** 2.1.3 Plotting BA.2 Frequency Trajectories**
+
+To compare BA.2’s trajectory across datasets, the variant's frequency is extracted from both the Sanger dataset (weekly counts) and the ONS-CIS dataset (10-day bin counts) and the results are plotted to illustrate their respective growth patterns
 
 ```{r ba2-frequency-trajectory}
+# Load the plotting function
 source(here("functions", "plotting.R"))
 
 # Extract BA.2 data from Sanger dataset
@@ -149,37 +195,44 @@ ba2_onscis <- onscis_analysis_data %>%
   filter(variant == "BA.2") %>%
   mutate(source = "ONS-CIS (10-day Binned)")
 
-# Plot 
+# Plot ...
 plot_ba2_frequency_comparison(ba2_sanger, ba2_onscis)
 ```
-***Figure 3: ...***
+***Figure 3: Frequency trajectories of BA.2 from the Sanger (weekly) and ONS-CIS (10-day binned) datasets.***
 
-###**Comparison of trajectories **
-Analysis: compare the two trajectories. Is there a difference in the timing of BA.2’s rise and when it reaches fixation? Reflect on potential reasons for these differences
-(sampling strategies and geographical or temporal biases in data collection)?
+###**2.2 Comparing Trajectories **
+
+The frequency trajectories of the BA.2 variant from the Sanger (weekly) dataset and the ONS-CIS (10-day binned) dataset exhibit a similar overall pattern, but differences in the timing of emergence, growth rate, and fixation are observed. BA.2 appears to rise slightly earlier in the Sanger dataset, likely due to its reliance on community testing and targeted sequencing, which are more responsive to emerging trends. In contrast, the ONS-CIS dataset, which follows a structured longitudinal survey, may introduce a slight delay in detecting early exponential growth. Additionally, the 10-day binning in ONS-CIS smooths out fluctuations, making the trajectory appear more gradual.
+
+BA.2 reaches near 100% prevalence at approximately the same time in both datasets, but the Sanger dataset shows a steeper increase, suggesting a faster observed expansion. This could be attributed to testing policies, where sequencing efforts may have prioritized BA.2 once it became dominant, whereas the ONS-CIS dataset, which samples individuals randomly, provides a less biased population-wide estimate. The decline phase also differs, with the Sanger dataset showing a sharper drop, likely due to sequencing efforts shifting to newer variants, whereas the ONS-CIS dataset suggests a more gradual decline, indicating that BA.2 may have persisted longer at low levels.
+
+These differences underscore the importance of data collection strategies and surveillance methods when interpreting genomic epidemiology data. While both datasets confirm BA.2’s rise, dominance, and decline, variations in sampling strategies, binning effects, and sequencing priorities can influence the observed trajectory. Using multiple surveillance approaches provides a more comprehensive and reliable picture of variant dynamics, which is essential for monitoring viral evolution and informing public health responses.
 
 ---
 
 ## **Question 3: variant Fixation Analysis**
 
-In this section I will be ...
-
-  Using the Sanger dataset, determine which variant—B.1.617.2, BA.1, or BA.2—reached
-  fixation the fastest and exhibited the highest selective advantage under a logistic growth model. 
-  Use weekly counts to measure the selective advantage (𝑠).
+This section investigates the fixation dynamics of three SARS-CoV-2 variants—B.1.617.2 (Delta), BA.1 (Omicron), and BA.2 (Omicron)—using weekly counts from the Sanger dataset. The objective is to determine which variant reached fixation the fastest and which exhibited the highest selective advantage under a logistic growth model. The selective advantage (𝑠) is estimated by fitting logistic growth curves to the frequency trajectories of each variant.
 
 ### **3.1 Selecting variant growth phases for logistic growth modelling**
 
-first a glimpse at the ...
+To model variant growth, it is necessary to identify the period during which each variant was actively expanding in the population. 
+The first step is to visualise the frequency trajectories of B.1.617.2, BA.1, and BA.2 to determine their respective growth phases.
 ```{r estimate-delta-growth-part1, echo=TRUE, message=FALSE, warning=FALSE}
+# Load the plotting function
 source(here("functions", "plotting.R"))
+
+# Plot ...
 plot_variant_frequency_trajectories(variants = c("B.1.617.2", "BA.1", "BA.2"))
-
 ```
-***Figure 4: ...***
+***Figure 4: Frequency trajectories of B.1.617.2, BA.1, and BA.2 over time.***
 
-I made a fucntion to selct the dates - for more information on how this was done please check the ... sheet 
+Then, a function was implemented to automatically extract the growth phase start and end dates for each variant, ensuring a consistent approach across lineages. Details on the selection criteria and methodology can be found in the variant_analyses script.
+
 ```{r}
+# Load the growth phase extraction function
+source(here("functions", "variant_analyses.R"))
+
 # Extract growth phase dates for each variant
 growth_phases <- bind_rows(
   extract_growth_phase_dates(sanger_analysis_data, "B.1.617.2"),
@@ -187,26 +240,48 @@ growth_phases <- bind_rows(
   extract_growth_phase_dates(sanger_analysis_data, "BA.2")
 )
 
+# ...
 print(growth_phases)
 
 ```
-***Table 1: ...***
-...
+***Table 1: Estimated growth phase start and end dates for each variant.***
 
+Once the growth phases are identified, the dataset is filtered to include only data within these periods. This ensures that the logistic growth model is fitted to the exponential growth phase, excluding periods of stagnation or decline.
 ```{r}
-
-# Filter sanger_analysis_data for selected variants and their growth phases
+# Filter the Sanger analysis data for selected variants and their growth phases
 selected_variant_data <- sanger_analysis_data %>%
   inner_join(growth_phases, by = "variant") %>%
   filter(collection_date >= start_date & collection_date <= end_date)
+```
 
+### **3.2 Logistic Growth Modelling and Selective Advantage Estimation**
+A logistic growth model is used to estimate the selective advantage (\(s\)) of each variant. This model assumes that a variant follows a sigmoidal trajectory, growing exponentially at first and then slowing as it approaches fixation. 
+The logistic growth function is defined as:
+
+\[
+f(t) = \frac{f(0) e^{st}}{1 + f(0) \left( e^{st} - 1 \right)}
+\]
+
+where:
+
+- \(f(t)\) is the variant frequency at time \(t\).
+
+- \(s\) is the selective advantage.
+
+- \(f(0)\) is the initial frequency.
+
+The model is fitted separately to each variant’s growth phase to estimate \(s\), allowing for a comparison of the relative fitness of B.1.617.2, BA.1, and BA.2.
+
+```{r}
+# Load the logistic growth model fitting function
+source(here("functions", "variant_analyses.R"))
 
 # Define Logistic Growth Function
 logistic_growth <- function(t, s, f0) {
   1 / (1 + ((1 - f0) / f0) * exp(-s * t))
 }
 
-# Extarct ...
+# Fit logistic growth models for each variant
 logistic_predictions_variant <- selected_variant_data %>%
   group_by(variant) %>%
   group_split() %>%
@@ -214,83 +289,96 @@ logistic_predictions_variant <- selected_variant_data %>%
                                        time_col = "collection_date", 
                                        frequency_col = "variant_frequency", 
                                        group_col = "variant"))
-
 ```
 
+Then, to visually assess the model fits, the estimated logistic growth curves are plotted alongside the observed data.
+
 ```{r}
+# Load the plotting function
+source(here("functions", "plotting.R"))
 
-
+# Plot...
 plot_logistic_growth_facet(
   data = selected_variant_data, 
   growth_phases = growth_phases, 
   variants = unique(selected_variant_data$variant)
 )
-
 ```
 
-***Figure 5: ...***
-comment .. 
+***Figure 5: Figure 5: Logistic growth model fits for B.1.617.2, BA.1, and BA.2, with their respective s-values.***
 
+### **3.3 Interpretation of Variant Fixation and Selective Advantage**
+
+The logistic growth model allows for a direct comparison of the fixation speed and selective advantage of B.1.617.2, BA.1, and BA.2. The estimated 𝑠-values provide insight into how rapidly each variant displaced its predecessors.
+
+Preliminary results indicate that BA.2 reached fixation the fastest, with a steeper growth curve compared to B.1.617.2 and BA.1. This suggests that BA.2 had the highest selective advantage, likely due to increased transmissibility or immune escape properties.
+
+B.1.617.2 (Delta): Exhibited strong growth but was eventually displaced by BA.1.
+BA.1 (Omicron): Replaced Delta rapidly but showed a more gradual fixation curve compared to BA.2.
+BA.2 (Omicron subvariant): Displayed the steepest logistic trajectory, indicating the highest selective advantage among the three.
+The differences in selective advantage align with epidemiological observations, where BA.2 demonstrated enhanced transmissibility over BA.1, leading to its rapid dominance. These findings underscore the importance of logistic growth modeling in understanding variant competition and evolutionary dynamics.
 
 
 ## **Question 4: Regional Analysis of Delta Variant**
 
+This section examines the regional spread of the Delta (B.1.617.2) variant across England using an anonymised dataset from COG-UK. The analysis aims to visualise Delta’s frequency trajectory by region, fit a logistic growth model to estimate its selective advantage, and assess whether regional differences in Delta’s emergence and growth could be attributed to a founder effect.
 
-### ** 4.1 Load and process regional delta data **
 
+## ** 4.1 Load and process regional delta data **
+The dataset contains sequenced Delta cases from various regions in England. It is first imported 
+from a GitHub repository to ensure ..., and processed to remove missing regional identifiers and structure the data for analysis.
 
 ```{r load-raw-data}
-# Load RDS data
-regional_delta_raw <- readRDS(here("data", "delta-d2.rds"))
+# Read the RDS file from GitHub
+url <- "https://raw.githubusercontent.com/Biology3579/SARSCoV2Assignment/main/data/delta-d2.rds"
+regional_delta_raw <- readRDS(url(url, "rb"))  # "rb" ensures reading in binary mode
 
+# Save the dataset locally
+write_rds(regional_delta_raw, here("data", "regional_delta_raw.rds"))
 ```
-
 ```{r}
-
-# Load functions
+# Load processing functions
 source(here("functions", "cleaning_and_curating.R"))
 
-# Clean the raw ONS-CIS data
-regional_delta_clean <- clean_delta_data(regional_delta_raw)
-
-# calculate frequencies
-delta_analysis_data <- counts_and_frequencies_delta(regional_delta_clean)
-
-
-# Save the cleaned and processed dataset
-write_csv(delta_analysis_data, here("data", "delta_analysis_data.csv"))
-
+# Pipe to process data concisely
+delta_analysis_data <- regional_delta_raw %>%
+  clean_delta_data() %>%  # Clean the dataset
+  counts_and_frequencies_delta() %>%  # Calculate variant frequencies
+  write_csv(here("data", "delta_analysis_data.csv"))  # Save the processed dataset
 ```
 
+## **4.2 Delta Frequencies and Logistic Growth by Region**
 
-### ** 4.2.1 Delta frequencies by region **
-
+### ** 4.2.1 Delta Frequencies by Region **
+To assess regional variation in Delta prevalence, weekly frequencies of Delta are computed and visualised.
 
 ```{r delta-region-analysis}
-# Plot Delta frequencies by region
+# Load plotting function
+source(here("functions", "plotting.R"))
 
-#First 
+# Aggregate data by week and region
 delta_weekly <- delta_analysis_data %>%
   mutate(week = floor_date(date, unit = "week")) %>%
   group_by(week, phecname) %>%
   summarise(
     delta_frequency = mean(delta_frequency, na.rm = TRUE), 
-    .groups = "drop"
-  )
+    .groups = "drop")
 
-#  Load functions
-source(here("functions", "plotting.R"))
+# Plot Delta frequency trajectories by region
 plot_delta_frequencies(delta_weekly)
 
 ```
-***Figure 6: ...***
-comment .. 
+***Figure 6: Weekly frequency trajectories of Delta across English regions.***
 
-### ** 4.2.2 logistic growth for each region **
 
-logistic growth for each region
+### ** 4.2.2 Logistic Growth Model by Region **
+A logistic growth model is fitted to each region's frequency trajectory to estimate Delta’s selective advantage (\(s\)) and its initial frequency (\(f(0)\)).
 
 ```{r}
+# Load the .. ucntion 
+source(here("functions", "variant_analyses.R"))
+
+# ...
 logistic_predictions_region <- delta_weekly %>%
   group_by(phecname) %>%
   group_split() %>%
@@ -300,105 +388,64 @@ logistic_predictions_region <- delta_weekly %>%
 
 ```
 
+The fitted logistic growth curves are overlaid onto the observed frequency data to assess how well the model represents regional growth patterns.
+
 ```{r}
+# Load the .. ucntion 
+source(here("functions", "plotting.R"))
+
+# ...
 plot_logistic_growth_region(
   observed_data = delta_weekly, 
   predicted_data = logistic_predictions_region
 )
-
 ```
+***Figure 7: Logistic growth model fits for Delta frequency trajectories across regions.***
+
 
 ### ** 4.3 logistic growth for each region **
 
-i) Identify the region with the fastest Delta outbreak; based on your
-analysis, determine which region had the most rapidly growing outbreak of Delta (highest
-𝑠). Identify the region where Delta had the earliest rise in frequencies (highest 𝑓0).
-Discuss why the timing of Delta’s emergence differed between regions. (ii) Could Delta’s
-growth across regions be associated with a founder effect? Explain what a founder
-effect is and evaluate whether the observed data supports or refutes this hypothesis:
+The logistic growth model provides insights into regional differences in the emergence and spread of the Delta variant. The West Midlands exhibited the highest growth rate ($s = 0.1577$), indicating that once introduced, Delta spread rapidly within the region. In contrast, the South West had the earliest rise in frequencies ($f_0 = 0.0416$), suggesting that Delta was detected earlier in this region compared to others. These differences highlight the role of regional factors in shaping the trajectory of variant emergence and dominance.
 
-Interpretation of Delta Variant Growth Analysis
-i) Identifying the Region with the Fastest Delta Outbreak
-The region West Midlands exhibited the highest growth rate (s = 0.1577), indicating the most rapidly growing outbreak of the Delta variant in that region.
-The region South West had the earliest rise in frequencies with the highest initial frequency (f₀ = 0.0416), suggesting Delta was detected earlier and had a head start in this region compared to others.
-Discussion: Why Did Delta Emerge at Different Times in Different Regions?
-Several factors could explain these regional differences in Delta's emergence and spread:
+Several factors may explain these regional variations. Population density and mobility likely influenced the spread, as seen in London, where a relatively high initial frequency ($f_0$) was observed, but the growth rate remained moderate. This suggests that high levels of mobility may have facilitated early introductions, but sustained transmission did not occur as rapidly as in the West Midlands. In contrast, the West Midlands had a lower initial frequency but the highest growth rate, suggesting that fewer early introductions led to rapid expansion once the variant became established.
 
-Population Density & Mobility:
+Differences in testing and surveillance may have also contributed to variations in Delta’s observed growth patterns. Regions with more intensive genomic surveillance may have detected Delta earlier, even before it reached a dominant presence. Additionally, travel patterns and introduction events played a role, as regions with major transport hubs, such as London and the South East, likely experienced earlier introductions via international travel. In contrast, regions with lower initial detection (low $f_0$) but high growth rates (high $s$), such as the West Midlands, suggest that while Delta was not introduced as early, it spread rapidly once present.
 
-London, despite having a relatively high f₀, had a moderate growth rate. This suggests that high population density and mobility may have facilitated early introductions but not necessarily the fastest growth.
-The West Midlands, on the other hand, had a lower f₀ but the highest growth rate (s), indicating rapid spread after the initial introduction.
-Testing & Surveillance Differences:
+Sociodemographic and behavioral factors may have further influenced transmission rates. Variations in vaccination uptake, workplace exposure, and social interactions could have impacted the speed at which Delta spread in different regions. Areas with large populations of essential workers and high-contact professions may have experienced accelerated transmission compared to regions with lower occupational exposure.
 
-Some regions might have had more intensive genomic surveillance, leading to earlier detection of the Delta variant.
-Travel & Introduction Events:
+The possibility of a founder effect in Delta’s regional spread was also considered. A founder effect occurs when a new population is established by a small number of initial individuals, potentially leading to distinct growth dynamics and reduced genetic variation. The variation in $f_0$ across regions suggests that Delta was introduced at different times and locations, supporting the hypothesis of multiple independent introductions rather than a single uniform spread. In particular, regions with low $f_0$ but high $s$, such as the West Midlands and Yorkshire and Humber, align with the characteristics of a local founder effect, where a few early cases triggered rapid outbreaks.
 
-Areas with major transport hubs or international travel links (e.g., London, South East) may have seen earlier introductions.
-In contrast, regions with lower initial detection (small f₀) but high growth rates (e.g., West Midlands) might have experienced fewer early introductions, but Delta spread rapidly once established.
-Sociodemographic & Behavioral Factors:
+However, there is also evidence against a founder effect as the growth rates ($s$) across regions remain relatively consistent, which would not be expected if a strong founder effect were the primary driver. Additionally, in some regions, such as the South West, where $f_0$ was high, Delta spread widely early on, suggesting that multiple introduction events, rather than a single founder-driven emergence, shaped the overall transmission pattern.
 
-Differences in vaccination rates, social distancing policies, and regional public health interventions could have influenced the speed of Delta’s spread.
-Areas with large essential worker populations (e.g., industrial hubs) might have seen higher workplace transmission rates.
-ii) Could Delta’s Growth Across Regions Be Associated with a Founder Effect?
-Definition of Founder Effect:
-A founder effect occurs when a new population is established by a small number of initial individuals, leading to reduced genetic variation and possibly different growth dynamics compared to the broader population.
+The analysis suggests that multiple independent introductions, rather than a single founder event, were primarily responsible for the spread of Delta across England. However, regional founder effects may have played a role in specific locations, particularly where Delta was introduced by a small number of individuals and subsequently expanded rapidly. The regional differences in Delta’s spread underscore the importance of considering population density, mobility, testing strategies, and travel patterns when assessing variant dynamics. While a founder effect may have contributed to localized outbreaks, the broader transmission trends indicate a complex interaction of epidemiological and demographic factors shaping Delta’s spread across the country.
 
-Does the Observed Data Support a Founder Effect?
-Evidence Supporting a Founder Effect:
-
-The initial frequency (f₀) varies significantly across regions, indicating that Delta was introduced at different times in different places.
-Regions with a very low f₀ but high s (e.g., West Midlands, Yorkshire and Humber) suggest a scenario where a few early cases initiated rapid exponential growth.
-If Delta had spread uniformly across the UK, we would expect similar f₀ values across all regions. Instead, we see regional variation, indicating multiple introduction events rather than a single uniform spread.
-Evidence Against a Founder Effect:
-
-If the founder effect were the dominant driver, we might expect more extreme differences in growth rates (s) due to initial sampling bias.
-The presence of high f₀ in South West (0.0416) suggests that some regions had early, widespread community transmission, reducing the likelihood that a single founder event shaped all outbreaks.
-Conclusion:
-
-The data suggests that multiple introduction events rather than a single founder event were responsible for Delta's spread.
-However, in regions with very low f₀ but high growth rates (e.g., West Midlands, Yorkshire and Humber), a local founder effect could have played a role in amplifying regional outbreaks.
-The founder effect alone does not explain Delta’s spread across the entire UK, but it may have contributed in certain regions where a few early cases triggered rapid outbreaks.
-Final Takeaways:
-Fastest-growing outbreak: West Midlands (s = 0.1577)
-Earliest rise in frequency: South West (f₀ = 0.0416)
-Delta’s spread was influenced by:
-Population density and mobility
-Regional surveillance efforts
-Travel patterns and introduction events
-Sociodemographic factors
-Founder effect likely played a role in some regions but does not fully explain Delta’s nationwide spread.
-This analysis highlights the complexity of viral spread, where both stochastic introduction events and structured population dynamics shape epidemic trajectories.
 
 ---
 
 ## **Question 5: Delta Incidence and Rt Estimation**
 
+This section examines the true incidence of Delta infections and estimates the time-varying reproduction number ($R_t$) using both sequencing data from the Sanger dataset and daily COVID-19 case counts from the ONS-CIS dataset. The goal is to assess how sequencing-based estimates compare to broader epidemiological trends and to evaluate the reliability of $R_t$ estimates derived from different data sources.
 
-1. ...
-Up until now, our analysis of the Delta variant has been based on sequencing data from samples sent to the Sanger Institute. This approach allows us to track the relative growth and spread of Delta compared to other variants, but it does not directly measure the true incidence of Delta infections in England. Incidence refers to the actual number of people who were infected with Delta at a given time, regardless of whether their cases were sequenced or even detected.
+### **5.1 Estimating the True Incidence of Delta**
 
-There are several reasons why sequencing-based estimates differ from true incidence. First, not all PCR-positive samples are sequenced, meaning that the proportion of Delta cases observed in sequencing data is not necessarily representative of all infections in the community. Some regions may have higher sequencing rates than others, creating geographic biases. Additionally, sequencing tends to focus on hospitalized cases or samples from targeted surveillance efforts, which may overrepresent more severe cases while missing mild or asymptomatic infections that are less likely to be tested.
+The analysis of the Delta variant thus far has been based on sequencing data from samples processed by the Sanger Institute. While this method is valuable for monitoring the relative growth and spread of Delta compared to other variants, it does not provide a direct measure of true incidence. True incidence refers to the actual number of individuals infected with Delta at a given time, including those who were never tested or whose infections were not sequenced.
 
-Another major limitation is testing bias. Many people who contract Delta may never get tested, either because they have mild symptoms, do not experience symptoms at all, or do not have access to testing facilities. Since sequencing relies on PCR-positive samples, it inherently excludes undiagnosed cases, leading to an underestimation of the true number of infections.
+There are several reasons why sequencing-based estimates may differ from the true number of Delta infections. Firstly, not all PCR-positive samples undergo sequencing, meaning that the available sequencing data represents only a fraction of total infections. This can introduce bias, as the sampled subset may not be fully representative of the broader infected population. Additionally, geographic disparities in sequencing rates may further affect the accuracy of estimates, as some regions may contribute proportionally more sequenced samples than others.
 
-Additionally, sequencing introduces a time lag in reporting. While PCR test results are available within a day or two, sequencing takes significantly longer. By the time sequencing data is available, the actual number of Delta cases in the population may have already changed, making it difficult to use this data for real-time incidence tracking.
+Another factor influencing incidence estimates is testing bias. Many individuals infected with Delta may never be tested, either due to mild or asymptomatic infections or limited access to testing facilities. As sequencing relies on PCR-confirmed cases, infections that are undiagnosed remain unaccounted for, leading to an underestimation of true incidence. Furthermore, delays in sequencing and reporting introduce additional uncertainty. While PCR test results are typically available within one to two days, sequencing requires more time. By the time sequencing data is processed and reported, the actual number of Delta cases in the population may have already changed, making real-time incidence estimation challenging.
 
-To estimate the true incidence of Delta, we need to rely on additional data sources beyond sequencing. One approach is to use ONS-CIS survey data, which estimates the total number of COVID-19 cases, including those that were not sequenced. If we know what proportion of sequenced cases were Delta, we can apply this proportion to the total estimated infections to approximate the true number of Delta cases.
+To overcome these limitations, alternative approaches are required to estimate the true incidence of Delta. One method involves integrating sequencing data with population-level COVID-19 case counts, such as those from the ONS-CIS survey, which captures infections beyond those that were sequenced. Other data sources, including wastewater surveillance and hospitalisation records, can also contribute to a more comprehensive understanding of Delta’s prevalence. These complementary methods help address biases in sequencing data and provide a more reliable estimate of the true number of Delta infections.e population may have already changed, making it difficult to use this data for real-time incidence tracking.
 
-Other useful approaches include wastewater surveillance, which detects SARS-CoV-2 RNA in sewage samples and provides an unbiased estimate of community transmission. Hospitalization data can also offer insights—if we compare the number of Delta-related hospitalizations to overall COVID-19 hospitalizations, we can estimate the relative burden of Delta. Epidemiological models, such as SIR (Susceptible-Infected-Recovered) models, can further refine estimates by incorporating factors like transmission rates and vaccination coverage.
-
-In conclusion, while sequencing provides valuable insights into variant proportions and growth rates, it does not capture the true scale of Delta infections. To obtain a more accurate picture of Delta’s spread in England, we must integrate multiple data sources, including population surveys, wastewater surveillance, and hospital records. This broader approach is essential for making informed public health decisions and effectively responding to the pandemic.
-
-
-
-
-2. 
+Thus, to approximate the true incidence of Delta, the proportion of Delta sequences in England (as reported in the Sanger dataset) is applied to the 7-day averaged daily case counts from the ONS-CIS dataset. This approach assumes that the proportion of Delta observed in sequenced samples reflects its relative frequency among all infections in the community, allowing for an indirect estimation of the total number of Delta cases over time.
 
 ```{r load-raw-data}
-# Load ... data
-delta_daily_raw <- read.csv(here("data", "daily-new-confirmed-covid-19-cases.csv"))
+# Load daily COVID-19 case data
+delta_daily_raw <- read.csv("https://raw.githubusercontent.com/Biology3579/SARSCoV2Assignment/main/data/daily-new-confirmed-covid-19-cases.csv")
 
-# clean
+# Save the dataset locally
+write_csv(delta_daily_raw, here("data", "delta_daily_raw.csv"))
+
+# Clean and format the dataset
 delta_daily_clean  <- delta_daily_raw %>%
     mutate(
       date = as.Date(date),  # Convert date column to Date format
@@ -406,311 +453,73 @@ delta_daily_clean  <- delta_daily_raw %>%
     )
 ```
 
+Since weekly sequencing data begins later than daily case data, early months are discarded to align timeframes. The daily case counts are aggregated into 7-day bins to match the weekly proportions of Delta from the Sanger dataset.
 
 ```{r}
-# Filter the Sanger dataset to only include Delta (B.1.617.2) sequences
-sanger_delta_data <- sanger_analysis_data %>%
-  filter(variant == "B.1.617.2") %>%  # Focus on Delta cases
-  rename(week = collection_date)  # Rename for clarity (since this is weekly data)
+# Load ... function
+source(here("functions", "variant_analyses.R"))
+
+# Estimate Delta cases using Sanger variant proportions
+daily_delta_estimates <- estimate_delta_cases(daily_cases = delta_daily_clean, 
+                                              sanger_data = sanger_analysis_data)
 
 ```
 
-Because wekkly dtaa starts a lot later than the daily data, i will discard the frist few moths and start from the the first week reporterd in the snager dataset - 2020-09-05 (which is a monday)
+A comparison is made between estimated daily Delta cases and sequencing-based Delta cases to evaluate discrepancies.
 
 ```{r}
-delta_daily_filtered <- delta_daily_clean %>%
-  filter(date >= as.Date("2020-09-05"))  # Remove earlier dates
+# Load ... function
+source(here("functions", "plotting.R"))
 
+# Plot estimated vs sequenced Delta cases
+plot_estimated_vs_sequenced_delta_cases(
+  delta_estimates = daily_delta_estimates, 
+  sanger_data = sanger_analysis_data)
 ```
+***Figure 8: Estimated daily Delta cases vs. Delta cases from sequencing data.***
 
-I will then group eevry 7 days of the daily and make it match with each week. 
-then i multiply 
+### **5.2 Reflection on Differences Between the Two Estimates**
 
-```{r}
-# Merge with Sanger dataset to get weekly Delta proportions
-daily_cases_with_delta <- delta_daily_filtered %>%
-  left_join(sanger_delta_data, by = "week")  # Assign each daily case count to its corresponding weekly Delta proportion
+The estimated Delta case counts, derived from population-level data, differ from sequencing-based counts due to several key factors. Testing bias plays a significant role, as the estimated cases include all reported positive tests, whereas the Sanger dataset represents only a subset of samples selected for sequencing. This introduces sampling bias, as not all infections are sequenced, potentially underrepresenting the true number of Delta cases.
 
-```
-```{r}
-# Ensure both datasets are correctly formatted
-delta_daily_filtered <- delta_daily_raw %>%
-  filter(date >= as.Date("2020-09-05")) %>%  # Start from the first date in Sanger data
-  mutate(date = as.Date(date))  # Ensure date format
+Differences in temporal resolution also contribute to discrepancies. The estimated cases, based on daily reports, provide a smoother trend, whereas sequencing data is collected weekly, making it more discrete and subject to fluctuations due to sample collection and processing times. Additionally, a scaling effect exists—sequencing data captures only a fraction of all infections, leading to lower absolute numbers, though relative trends between the two datasets should broadly align.
 
-sanger_delta <- sanger_analysis_data %>%
-  filter(variant == "B.1.617.2") %>%  # Keep only Delta variant
-  select(collection_date, variant_frequency) %>%  # Keep relevant columns
-  rename(week = collection_date)  # Rename collection_date to week for clarity
+Reporting delays further distinguish the datasets. Sequencing takes additional time, meaning the Sanger dataset may lag behind real-time incidence, whereas daily case estimates provide a more immediate measure of transmission dynamics.
 
-# Assign each daily case count to the closest previous weekly proportion
-daily_cases_with_delta <- delta_daily_filtered %>%
-  mutate(
-    week = sanger_delta$week[findInterval(date, sanger_delta$week)]  # Match each date to the nearest past week
-  ) %>%
-  left_join(sanger_delta, by = "week")  # Merge with weekly Delta proportions
-
-# Convert week back to Date format
-daily_cases_with_delta$week <- as.Date(daily_cases_with_delta$week)
-
-```
-
-now calcualte ..
-then i will gather the data in this dataset -> ... round so it makes more sense
-```{r}
-# Compute estimated Delta cases
-daily_cases_with_delta <- daily_cases_with_delta %>%
-  mutate(estimated_delta_cases = round(cases_sevendayaveraged * variant_frequency)) # rpound so its a decimal!!
-
-```
+Despite these differences, both estimates show similar overall trends, capturing Delta’s rise, peak, and subsequent decline. These findings highlight the need to integrate multiple data sources for a more accurate assessment of variant spread and epidemiological trends.
 
 
-then i will plot...
+### **5.3 Estimating the Reproduction Number ($R_t$)**
 
-reflect on why the two coutns are different from each other 
+To assess the transmission dynamics of Delta, the time-varying reproduction number ($R_t$) is calculated using the estimated daily Delta case counts.
 
 ```{r}
-# Create a dataset for plotting
-plot_data <- daily_cases_with_delta %>%
-  select(date, estimated_delta_cases) %>%
-  rename(value = estimated_delta_cases) %>%
-  mutate(source = "Estimated Daily Delta Cases")
+# Load ... function
+source(here("functions", "variant_analyses.R"))
 
-# Prepare Sanger weekly sequence counts for plotting
-sanger_weekly <- sanger_analysis_data %>%
-  filter(variant == "B.1.617.2") %>%  # Select Delta variant
-  select(collection_date, variant_count) %>%
-  rename(value = variant_count, date = collection_date) %>%
-  mutate(source = "Sanger Weekly Delta Sequences")
-
-# Combine both datasets
-combined_plot_data <- bind_rows(plot_data, sanger_weekly)
+# Generate Rt estimates
+rt_estimates <- generate_rt_estimates(daily_delta_estimates)
 
 ```
 
 ```{r}
-# Load necessary library
-library(ggplot2)
+# Load plotting function
+source(here("functions", "plotting.R"))
 
-# Create the plot
-ggplot(combined_plot_data, aes(x = date, y = value, color = source)) +
-  geom_line(size = 1) +  # Line plot
-  geom_point(size = 2, alpha = 0.7) +  # Points for clarity
-  scale_color_manual(values = c("Estimated Daily Delta Cases" = "red", 
-                                "Sanger Weekly Delta Sequences" = "blue")) +
-  labs(
-    title = "Estimated Daily Delta Cases vs. Weekly Sanger Sequences",
-    x = "Date",
-    y = "Count",
-    color = "Source"
-  ) +
-  theme_minimal()
-
-```
-
-Step 3: Reflection on the Differences
-The two counts are different because:
-
-Testing Bias
-
-The estimated Delta cases use all reported positive cases, while Sanger sequences come from a subset that was selected for sequencing.
-Not all positive cases were sequenced, leading to sampling bias in the Sanger dataset.
-Temporal Resolution
-
-Daily estimates provide a smoother trend, whereas weekly sequencing counts are more discrete and uneven (since sequencing may vary week to week).
-The weekly sequencing numbers can be affected by lab backlogs or sample collection timing.
-Scaling Effect
-
-The absolute numbers differ because the Sanger dataset captures only a fraction of all real cases.
-However, proportions should still broadly follow the same trends.
-Lag in Reporting
-
-The sequencing process takes time, which can lead to delays in when cases appear in the Sanger dataset vs. real reported cases.
-
-
-
-2. measurign the ... 
-
-```{r}
-# Load necessary libraries
-library(EpiEstim)
-library(ggplot2)
-
-# Define the time range for Rt estimation - these dates were chosen beacsue ...
-start_date <- as.Date("2021-04-23")
-end_date <- as.Date("2021-11-01")
-
-# Filter estimated daily Delta cases within this date range
-delta_incidence_data <- daily_cases_with_delta %>%
-  filter(date >= start_date & date <= end_date) %>%
-  select(date, estimated_delta_cases) %>%
-  rename(dates = date, I = estimated_delta_cases)  # Rename columns for EpiEstim
-
-```
-
-Step 2: Define Serial Interval Parameters
-Based on Delta transmission dynamics, we use:
-Mean serial interval = 4.1 days
-Standard deviation = 2.8 days
-
-why...
-```{r}
-# Define the serial interval
-serial_interval <- list(mean_si = 4.1, std_si = 2.8)
-
-```
-
-```{r}
-# Run EpiEstim to estimate Rt
-rt_results <- estimate_R(
-  incid = delta_incidence_data,
-  method = "parametric_si",
-  config = make_config(serial_interval)
-)
-
-# Extract the relevant R_t estimates
-rt_estimates <- rt_results$R
-  
-# Display the first few rows of R_t estimates
-head(rt_estimates)
-
-```
-
-```{r}
-max_rt <- rt_estimates %>%
-  arrange(desc(`Mean(R)`)) %>%
-  slice(1)
-
-print(max_rt)
-
-```
-
-```{r}
-
-# Calculate the mean R_t during the early phase
-mean_rt_early_phase <- mean(rt_estimates$`Mean(R)`, na.rm = TRUE)
-
-# Output the result
-print(paste("Mean R_t during the early phase (April 23 - Nov 1, 2021):", round(mean_rt_early_phase, 2)))
-
-```
-
-
-
-
-```{r}
 # Plot Rt estimates
-plot(rt_results, what = "R", legend = FALSE) +
-  labs(
-    title = expression("Time-varying reproduction number" ~ (R[t]) ~ "for Delta (Estimated Cases)"),
-    x = "Date",
-    y = expression("Reproduction number" ~ (R[t]))
-  ) +
-  theme_minimal()
+plot_rt_estimates(rt_estimates)
 
 ```
-Do the Estimates Differ Significantly?
-While the mean 
-𝑅
-𝑡
-R 
-t
-​
-  values are close (1.944 vs. 1.915), the key difference lies in the standard deviations:
+***Figure 9: Estimated $R_t$ values for Delta transmission.***
 
-Our estimate (± 0.075) has a much smaller spread, meaning it is more precise.
-The ONS-CIS estimate (± 0.279) has a wider spread, meaning there is greater uncertainty in the estimate.
-Statistically, since our estimate falls within the confidence range of the ONS-CIS estimate (1.915 ± 0.279 = [1.636, 2.194]), the difference is not statistically significant. This suggests that both estimates are consistent with each other within the margin of error.
+### **5.4 Comparison of $R_t$ Estimates**
 
-Which Estimate is More Reliable?
-Our Sanger-Based Estimate (1.944 ± 0.075):
-More precise, with a smaller standard deviation.
-Likely reflects variant-specific transmission dynamics.
-However, it is based only on sequenced cases, which may not represent total infections.
-ONS-CIS Estimate (1.915 ± 0.279):
-Slightly lower precision due to a higher standard deviation.
-Based on a randomly sampled population, reducing testing biases.
-More reliable for overall transmission in the community, capturing asymptomatic cases.
-Conclusion
-Both estimates suggest rapid early spread of Delta (
-𝑅
-𝑡
-≈
-1.9
-R 
-t
-​
- ≈1.9). Our Sanger-based estimate is more precise but potentially biased towards tested individuals, while the ONS-CIS estimate has higher uncertainty but is likely more representative of real-world transmission.
+The estimated $R_t$ values derived from Sanger sequencing data and ONS-CIS population data were compared to assess their reliability. The mean $R_t$ values were similar across the two datasets, with the Sanger-based estimate at $R_t = 1.944 \pm 0.075$ and the ONS-CIS estimate at $R_t = 1.915 \pm 0.279$. The primary difference between these estimates lies in their spread of values. The Sanger-based estimate is more precise, with a smaller standard deviation ($\pm 0.075$), while the ONS-CIS estimate has a greater degree of uncertainty, as indicated by its larger standard deviation ($\pm 0.279$). However, the two estimates do not differ significantly from a statistical perspective, as the Sanger estimate falls within the confidence interval of the ONS-CIS estimate (1.636–2.194).  
 
-. Both estimates suggest that, in the early phase, each Delta-infected individual was spreading the virus to nearly two other people, leading to rapid growth.
+Each dataset has strengths and limitations when estimating $R_t$. The Sanger-based estimate ($R_t = 1.944 \pm 0.075$) offers higher precision due to its lower variability and directly reflects variant-specific transmission dynamics. However, it is derived only from sequenced cases, which means it is likely biased toward tested and sequenced individuals, potentially underestimating infections in the broader population. In contrast, the ONS-CIS estimate ($R_t = 1.915 \pm 0.279$) is more representative of real-world transmission, as it captures both symptomatic and asymptomatic cases, reducing testing bias. Since it is based on a structured random sampling approach, it is likely to provide a more accurate measure of total infections. However, the higher uncertainty associated with this estimate results in a wider confidence interval, making it less precise than the Sanger-based calculation.  
 
-However, methodological differences in data collection and sampling could contribute to minor variations:
-
-Sampling Strategy & Data Source Differences
-
-ONS-CIS Dataset:
-The ONS-CIS (Office for National Statistics COVID-19 Infection Survey) uses a random, representative sample of the population.
-This approach reduces bias since it includes individuals who may not have sought testing but were still infected.
-Sanger Dataset (Used in Our Estimate):
-The Sanger dataset relies on PCR-positive cases that were sent for sequencing.
-This means it is biased toward individuals who tested positive and had samples sequenced, likely underestimating infections in asymptomatic or untested individuals.
-Representativeness of Sequencing Data for Actual Infections
-
-The Sanger dataset provides valuable variant frequency trends, but it does not capture total infections accurately.
-The ONS-CIS dataset, in contrast, directly estimates prevalence in the community, potentially leading to a more reliable 
-𝑅
-𝑡
-R 
-t
-​
-  estimate.
-Which Estimate is More Reliable?
-The ONS-CIS estimate (
-𝑅
-𝑡
-=
-1.91
-R 
-t
-​
- =1.91) is likely more reliable because:
-
-It is based on a structured random sampling approach, reducing bias.
-It includes asymptomatic individuals who wouldn’t have been tested otherwise.
-It does not depend on sequencing availability, avoiding biases in which samples are selected for sequencing.
-However, our estimate using the Sanger dataset (
-𝑅
-𝑡
-=
-1.94
-R 
-t
-​
- =1.94) is still valuable, as it reflects trends specifically within tested and sequenced cases. This is useful for tracking variant-specific transmission dynamics, even if it may slightly over- or underestimate 
-𝑅
-𝑡
-R 
-t
-​
- .
-
-Conclusion
-Both estimates suggest rapid early spread of Delta with 
-𝑅
-𝑡
-≈
-1.9
-R 
-t
-​
- ≈1.9, but the ONS-CIS dataset likely provides a more accurate representation of real-world transmission. Our Sanger-based approach, however, remains valuable for tracking variant-specific transmission patterns.
-
-
-## **Conclusions**
-
-- The dataset provided insights into the dynamics of SARS-CoV-2 variants in England.
-- The BA.2 variant trajectory differed between datasets, likely due to sampling strategies.
-- The Delta variant exhibited regional variation in growth rates.
-- The estimated Rt for Delta confirmed its rapid spread.
+Both estimates suggest that Delta had a high initial transmission rate ($R_t \approx 1.9$), meaning that each infected individual was, on average, spreading the virus to nearly two others, leading to rapid exponential growth. However, methodological differences in data collection and sampling influence the reliability of each estimate. The Sanger dataset provides a more precise estimate but is limited to sequenced cases, which may not fully capture the true scale of infections. On the other hand, the ONS-CIS estimate is likely a more accurate reflection of community-wide transmission, as it includes a broader and more representative sample. Ultimately, both approaches offer valuable insights into Delta’s epidemiology. The Sanger dataset is useful for tracking variant-specific transmission, while the ONS-CIS dataset provides a more comprehensive understanding of overall spread. Integrating multiple data sources is essential for accurate public health decision-making, ensuring a well-rounded assessment of variant dynamics.
 
 ## **References**
+
+

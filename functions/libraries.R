@@ -10,25 +10,44 @@
 ##
 ## ---------------------------
 
-# Function to load all necessary libraries for the Pygoscelis penguins bill morphology analysis
-#load_libraries <- function() {
-  library(here)            # for specifying the directory
-  library(readr)           # for reading and writing CSV files
-  library(tinytex)         # for LaTeX-related tasks
-  library(renv)            # for environment management
-  library(janitor)         # for cleaning data
-  library(tidyverse)       # for data manipulation and visualization
-  library(dplyr)           # for data manipulation
-  library(ggplot2)         # for data visualization
-  library(lubridate)       #
-  library(ggpubr)
-  library(patchwork)
+
+# Function to load all required libraries for the SARS-CoV-2 analysis
+load_libraries <- function() {
+  
+  # core data wrangling and processing
+  library(tidyverse)     # includes dplyr, tidyr, ggplot2, readr for data manipulation and visualization
+  library(dplyr)         # data wrangling (mutate, filter, group_by, summarise, rename, arrange)
+  library(tidyr)         # data tidying (pivoting, handling missing values, reshaping data)
+  library(lubridate)     # date handling (as.Date, floor_date, time-series processing)
+  library(here)          # file path management (used for sourcing functions and saving data)
+  library(readr)         # reading and writing csv files (for loading datasets)
+  library(janitor)       # cleaning column names, handling missing values (used for data cleaning)
+  
+  # data visualization
+  library(ggplot2)       # core plotting package (used for all visualizations)
+  library(viridis)       # colorblind-friendly color palettes (for consistent variant and region coloring)
+  library(scales)        # formatting axes (date labels, continuous scale adjustments)
+  library(patchwork)     # arranging multiple plots together (for combining visualizations)
+  library(ggpubr)        # enhanced plotting utilities (e.g., adding p-values, statistical summaries)
+  library(svglite)       # exporting plots as svg (for high-quality vector graphics)
+  
+  # statistical modeling and epidemic analysis
+  library(nls.multstart) # logistic growth model fitting (used for variant growth estimation)
+  library(nlstools)      # non-linear regression tools (for logistic model diagnostics)
+  library(EpiEstim)      # estimating time-varying reproduction number rt
+  library(incidence)     # incidence curve analysis (used in epidemiological practicals)
+  
+  # time-series analysis and rolling averages
+  library(zoo)           # rolling averages and time-series transformations (used in smoothing data)
+  library(slider)        # sliding window calculations (alternative to zoo for rolling averages)
+  
+  # report formatting and reproducibility
+  library(knitr)         # dynamic reporting (used for formatting reports in rmarkdown/quarto)
+  library(kableExtra)    # enhancing tables in reports (used in markdown-based documents)
+  library(tinytex)       # latex-related tasks (for compiling pdf reports)
+  
+  # environment and package management
+  library(renv)         # managing package environments for reproducibility
 }
 
-# extras?
-# library(svglite)         # for saving figures as svg
-#library(lme4)            # for linear models
-#library(rstatix)         # for pair-wise t-tests
-#library(grid)            # for graphical layout
-#library(gridExtra)       # for graphical layout
-#library(ggsignif)        # for adding significance annotations to ggplot2 plots
+
