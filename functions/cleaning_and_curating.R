@@ -49,14 +49,17 @@ clean_sanger_data <- function(raw_data, variants) {
 counts_and_frequencies <- function(cleaned_data) {
   cleaned_data %>%
     group_by(collection_date, variant) %>%
-    summarise(variant_count = sum(count, na.rm = TRUE), .groups = "drop") %>%  # Sum counts per variant per day
+    summarise(variant_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+    
+    # Calculate total number of sequences per date 
     group_by(collection_date) %>%
     mutate(
-      total_count = sum(variant_count),  # Total number of sequences per date
-      variant_frequency = variant_count / total_count  # Compute frequency per variant
+      total_count = sum(variant_count, na.rm = TRUE),  # total for that date
+      variant_frequency = variant_count / total_count   # relative frequency
     ) %>%
     ungroup()
 }
+
 
 # ---------------------------
 # Cleaning ONS-CIS Data ----
