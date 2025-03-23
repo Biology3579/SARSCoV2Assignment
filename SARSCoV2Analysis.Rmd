@@ -10,6 +10,10 @@ geometry: left=0.5cm, right=1cm, top=1cm, bottom=2cm
 mainfont: Arial
 ---
 ## R-set-up
+
+**Important note:**
+*Comprehensive instructions, including all prerequisites and detailed guidelines for running this analysis and relevant code, are available in the README file of my [GitHub repository](https://github.com/Biology3579/SARSCoV2Assignment.git) for this project. Please refer to the README to ensure proper setup and usage.*
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo = TRUE,       # Show R code in the document
@@ -17,6 +21,7 @@ knitr::opts_chunk$set(
   message = FALSE    # Suppress messages
 )
 ```
+
 ```{r renv-restore, message=FALSE}
 # Restoring project's environment 
 renv::restore()
