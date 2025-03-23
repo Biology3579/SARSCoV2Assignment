@@ -3,9 +3,9 @@ title: "SARSCoV2Analysis"
 author: "Biology3579"
 date: "2025-03-18"
 output:
-  html_document: default
   pdf_document:
     latex_engine: xelatex
+  html_document: default
 geometry: left=0.5cm, right=1cm, top=1cm, bottom=2cm
 mainfont: Arial
 ---

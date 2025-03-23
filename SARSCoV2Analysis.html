@@ -359,6 +359,11 @@ display: none;
 
 <div id="r-set-up" class="section level2">
 <h2>R-set-up</h2>
+<p><strong>Important note:</strong> <em>Comprehensive instructions,
+including all prerequisites and detailed guidelines for running this
+analysis and relevant code, are available in the README file of my <a href="https://github.com/Biology3579/SARSCoV2Assignment.git">GitHub
+repository</a> for this project. Please refer to the README to ensure
+proper setup and usage.</em></p>
 <pre class="r"><code># Restoring project&#39;s environment 
 renv::restore()</code></pre>
 <pre><code>## - The library is already synchronized with the lockfile.</code></pre>
@@ -605,14 +610,14 @@ using data from the Sanger (weekly) and ONS-CIS (10-day binned)
 datasets. While the overall patterns are highly consistent, with both
 datasets showing a characteristic rapid rise and decline in BA.2
 frequency, there are subtle differences in timing and trajectory shape.
-In the Sanger dataset, BA.2 appears to begin its rise slightly
-earlier—around late January 2022—compared to early February in the
-ONS-CIS data. This may reflect the fact that the Sanger dataset is based
-on community testing and may detect early signals more quickly,
-especially if sequencing efforts begin to focus on an emerging lineage.
-In contrast, the ONS-CIS dataset, which is based on a structured,
-randomly sampled household survey, may lag slightly in capturing the
-initial emergence of a variant due to its design.</p>
+In the Sanger dataset, BA.2 appears to begin its rise slightly earlier —
+around late January 2022 — compared to early February in the ONS-CIS
+data. This may reflect the fact that the Sanger dataset is based on
+community testing and may detect early signals more quickly, especially
+if sequencing efforts begin to focus on an emerging lineage. In
+contrast, the ONS-CIS dataset, which is based on a structured, randomly
+sampled household survey, may lag slightly in capturing the initial
+emergence of a variant due to its design.</p>
 <p>The steepness of the increase also differs. The Sanger dataset shows
 a sharper curve, suggesting a more rapid observed expansion, whereas the
 ONS-CIS data presents a smoother and slightly delayed ascent. This is
@@ -1107,18 +1112,18 @@ perspective.</p>
 Sanger dataset offers variant-specific precision, making it particularly
 valuable for tracking the behaviour of individual lineages like Delta.
 However, it is limited to PCR-positive cases selected for sequencing,
-introducing testing and selection biases—particularly underrepresenting
-asymptomatic or untested infections. In contrast, the ONS-CIS dataset is
-designed for population-level surveillance through random sampling,
-capturing both symptomatic and asymptomatic cases. This makes it more
-representative of overall transmission, albeit with reduced precision
-due to smaller sample sizes and less frequent data collection. Both
-approaches estimate an initial <span class="math inline">\(R_t\)</span>
-close to 1.9, highlighting Delta’s strong transmissibility and potential
-for exponential spread. Together, they tell a more complete story: while
-the Sanger data delivers granular, lineage-specific trends, the ONS-CIS
-survey offers broader, unbiased population-level insights. Integrating
-these complementary sources enhances the reliability of <span class="math inline">\(R_t\)</span> estimation and supports more informed
+introducing testing and selection biases — particularly
+underrepresenting asymptomatic or untested infections. In contrast, the
+ONS-CIS dataset is designed for population-level surveillance through
+random sampling, capturing both symptomatic and asymptomatic cases. This
+makes it more representative of overall transmission, albeit with
+reduced precision due to smaller sample sizes and less frequent data
+collection. Both approaches estimate an initial <span class="math inline">\(R_t\)</span> close to 1.9, highlighting Delta’s
+strong transmissibility and potential for exponential spread. Together,
+they tell a more complete story: while the Sanger data delivers
+granular, lineage-specific trends, the ONS-CIS survey offers broader,
+unbiased population-level insights. Integrating these complementary
+sources enhances the reliability of <span class="math inline">\(R_t\)</span> estimation and supports more informed
 public health decisions.</p>
 </div>
 </div>
