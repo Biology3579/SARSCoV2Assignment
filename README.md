@@ -1,13 +1,13 @@
 # SARS-CoV-2 Variant Analysis
 This repository contains the scripts and files for analyzing the evolution and spread of SARS-CoV-2 variants. The project focuses on quantifying variant fitness, growth dynamics, and epidemiological trends using genomic and epidemiological data sources.
 
-All the necessary code for the analysis can be found in the [SARSCoV2Analysis.Rmd]([https://github.com/Biology3579/ReproducibleScienceAssignment/blob/main/PenguinAnalysis.Rmd](https://github.com/Biology3579/SARSCoV2Assignment/blob/main/SARSCoV2Analysis.Rmd)) file. This R Markdown document includes data preprocessing, statistical modeling, visualization, and epidemiological interpretation.
+All the necessary code for the analysis can be found in the [SARSCoV2Analysis.Rmd](https://github.com/Biology3579/SARSCoV2Assignment/blob/main/SARSCoV2Analysis.Rmd) file. This R Markdown document includes data preprocessing, statistical modeling, visualization, and epidemiological interpretation.
 
 ## Finished Reports
 The repository includes two completed reports summarizing the analysis, results, and conclusions:
 
-PDF Report: A full report containing analysis details, figures, and interpretations.
-HTML Report: An interactive HTML version of the report for dynamic viewing.
+- PDF Report: A full report containing analysis details, figures, and interpretations.
+- HTML Report: An interactive HTML version of the report for dynamic viewing.
 
 ## Running the Analysis
 To reproduce the results, follow these steps to set up your local environment.
