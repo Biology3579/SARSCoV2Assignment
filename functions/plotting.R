@@ -346,31 +346,37 @@ plot_estimated_vs_sequenced_delta_cases <- function(delta_estimates, sanger_data
 # for delta variant cases, including a shaded confidence interval.
 plot_rt_estimates <- function(rt_estimates) {
   
-  # Rename columns for better readability in ggplot
+  # Rename columns for readability
   rt_estimates <- rt_estimates %>%
     rename(
-      t_mid = t_start,  # Use t_start as midpoint reference
-      Mean_R = `Mean(R)`,  # Rename mean reproduction number
-      Std_R = `Std(R)`,  # Rename standard deviation
-      Lower_CI = `Quantile.0.025(R)`,  # Rename lower confidence interval
-      Upper_CI = `Quantile.0.975(R)`  # Rename upper confidence interval
+      t_mid = t_start,
+      Mean_R = `Mean(R)`,
+      Std_R = `Std(R)`,
+      Lower_CI = `Quantile.0.025(R)`,
+      Upper_CI = `Quantile.0.975(R)`
     ) %>%
-    mutate(t_mid = (t_mid + t_end) / 2)  # Calculate midpoint for plotting
+    mutate(t_mid = as.Date((t_mid + t_end) / 2, origin = "1970-01-01"))  # ensure t_mid is Date type
   
-  # Generate plot
-  ggplot(rt_estimates, aes(x = t_mid, y = Mean_R)) +  
-    geom_line(color = "#404788", size = 1.2) +  # plot mean R_t as a solid line
-    geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI),  
-                fill = "#404788", alpha = 0.2) +  # plot shaded confidence interval
+  # Create the plot
+  ggplot(rt_estimates, aes(x = t_mid, y = Mean_R)) +
+    geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), fill = "#433E85", alpha = 0.5) +  # confidence interval
+    geom_line(color = "#433E85", size = 1) +  # Rt estimate line
+    geom_hline(yintercept = 1, linetype = "dashed") +  # dashed line at Rt = 1
+    scale_x_date(date_labels = "%b", date_breaks = "1 month") +  # format x-axis by month
+    scale_y_continuous(limits = c(0, NA)) +
     labs(
-      title = expression("Time-Varying Reproduction Number" ~ (R[t]) ~ "For Delta (Estimated Cases)"),
+      title = expression("Time-varying reproduction number" ~ (R[t]) ~ "for Delta"),
       x = "Collection Date",
-      y = expression("Reproduction Number" ~ (R[t]))
+      y = expression("Reproduction number" ~ (R[t]))
     ) +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          legend.position = "none",
-          plot.title = element_text(hjust = 0.5, face = "bold"))
+    theme(
+      axis.text.x = element_text(angle = 0, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "none"
+    )
 }
+
+
 
   
