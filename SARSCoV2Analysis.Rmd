@@ -396,7 +396,7 @@ plot_logistic_growth_region(
 _Figure 7: Logistic growth model fits for the Delta (B.1.617.2) variant frequency trajectories across English regions._
 
 
-#### 4.3 Logistic growth for each region 
+### 4.3 Logistic growth for each region 
 
 The logistic growth model fitted to Delta variant frequencies across English regions provides insight into how the variant spread geographically. As shown in Figure 7, the West Midlands exhibited the highest growth rate ($s = 0.158$), indicating the fastest-growing Delta outbreak. In contrast, the South West had the highest initial frequency ($f_0 = 0.042$), suggesting earlier detection or seeding of Delta in that region. These regional differences likely reflect underlying variations in population movement, exposure settings, and surveillance intensity. For example, London displayed a relatively high $f_0$ but a more moderate $s$, implying early introduction — likely facilitated by international travel and dense transport networks — but less explosive growth.  The elevated $f_0$ may also reflect enhanced testing and genomic surveillance capacity in the capital, allowing for earlier detection of circulating variants even before widespread transmission occurred. On the other hand, the slower initial expansion may be attributed to higher early vaccination coverage, better access to testing, or heterogeneous mixing patterns that limited sustained transmission in the initial stages.
 
@@ -509,5 +509,5 @@ Each data source carries its own strengths and limitations. The Sanger dataset o
 
 ^3^ Ruan, Y., Luo, Z., Tang, X., Li, G., Wen, H., He, X., Lu, X., Lu, J. and Wu, C.-I. (2020). On the founder effect in COVID-19     outbreaks – How many infected travelers may have started them all? National Science Review.                                     doi:https://doi.org/10.1093/nsr/nwaa246.
 
-^4^ mrc-ide (2020). GitHub - mrc-ide/EpiEstim: A tool to estimate time varying instantaneous reproduction number during             epidemics. [online] GitHub. Available at: https://github.com/mrc-ide/EpiEstim [Accessed 23 Mar. 2025].
+^4^ mrc-ide (2020). GitHub - mrc-ide/EpiEstim: A tool to estimate time varying instantaneous reproduction number during             epidemics. [online] GitHub. Available at: https://github.com/mrc-ide/EpiEstim [Accessed 12 Mar. 2025].
 
